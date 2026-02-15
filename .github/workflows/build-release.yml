@@ -103,5 +103,32 @@ jobs:
           files: artifacts/*.zip
           name: Jitzu 0.1.0
           draft: true
+          body: |
+            ## Downloads
+
+            Choose your platform below:
+            - **jitzu-0.1.0-linux-x64.zip** - Linux (x64)
+            - **jitzu-0.1.0-win-x64.zip** - Windows (x64)
+            - **jitzu-0.1.0-osx-x64.zip** - macOS (Intel)
+            - **jitzu-0.1.0-osx-arm64.zip** - macOS (Apple Silicon)
+
+            ## What's Inside
+
+            Each zip contains:
+            - `jz` / `jzsh.exe` - The Jitzu interpreter and shell
+
+            ## Quick Start
+
+            ### Linux / macOS
+            ```bash
+            unzip jitzu-0.1.0-*.zip
+            ./jzsh
+            ```
+
+            ### Windows
+            ```powershell
+            Expand-Archive jitzu-0.1.0-win-x64.zip
+            .\jzsh.exe
+            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
