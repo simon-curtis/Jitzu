@@ -1,0 +1,17 @@
+// Simple String
+print("Hello World")
+print("Hello\nWorld")
+print("Hello\tWorld")
+
+// String concatenation
+let greeting = "Hello"
+let name = greeting + " World"
+print(name)
+
+// Interpolated Strings
+print(`{greeting}, Simon`)
+
+// Using variables in strings
+let count = 1
+print(`{count} + {count} = 2`)
+print(count + " apples")

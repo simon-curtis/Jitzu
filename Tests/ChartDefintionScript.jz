@@ -1,0 +1,18 @@
+let lines = read_lines("envs")?.kv(l => l.split_once("="))
+let choice = pick("Version", lines.map(c => c.key))
+let conn_str = try lines[choice]
+
+let conn = Sql.new(conn_str)?
+let script = try read_text("select-script.sql")
+let template = try read_text("template.sql")
+
+let dir = try Dir.create("output")
+
+for row in try conn.query(script) {
+    let content = template
+        .replace("{{Id}}", row.Id.to_string())
+        .replace("{{Name}}", row.Name)
+
+    let file = try dir.file(`File_{row.Id}.txt`)
+    file.write_all_text(content)
+}

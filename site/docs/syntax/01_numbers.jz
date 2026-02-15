@@ -1,0 +1,21 @@
+// Working with numbers
+
+let x = 20
+let y = 10
+
+// Basic arithmetic
+print(x + y) // Addition
+print(x - y) // Subtraction
+print(x * y) // Multiplication
+print(x / y) // Division
+print(x % y) // Modulus
+
+// Combined expressions
+print(x + y - x * y / x % y)
+
+// Parsing numbers
+let parsed_int = try Int.parse("42")
+print(parsed_int)
+
+let parsed_double = try Double.parse("42.42")
+print(parsed_double)

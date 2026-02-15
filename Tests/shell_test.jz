@@ -1,0 +1,12 @@
+// Test script for Jitzu.Shell
+let x = 42
+print("x = " + x)
+
+let y = x + 1
+print("y = x + 1 = " + y)
+
+fun double(n) {
+    n * 2
+}
+
+print("double(x) = " + double(x))

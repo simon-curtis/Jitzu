@@ -1,0 +1,10 @@
+﻿fun fib(n: Int): Int {
+    if n <= 1 {
+        return n
+    }
+    fib(n - 1) + fib(n - 2)
+}
+
+let n = try Int.parse(args[0].or("35"))
+let result = fib(n)
+print(result)

@@ -1,0 +1,36 @@
+// Test 4: Mix of built-in and user-defined types
+
+type User {
+    pub id: Int,
+    pub username: String,
+    pub email: String,
+    pub isActive: Bool
+}
+
+type Product {
+    pub id: Int,
+    pub name: String,
+    pub price: Double
+}
+
+let user = User {
+    id = 1,
+    username = "john_doe",
+    email = "john@example.com",
+    isActive = true
+}
+
+let product = Product {
+    id = 100,
+    name = "Laptop",
+    price = 999.99
+}
+
+print(user.id)
+print(user.username)
+print(user.email)
+print(user.isActive)
+
+print(product.id)
+print(product.name)
+print(product.price)

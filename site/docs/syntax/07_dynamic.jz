@@ -1,0 +1,27 @@
+// Demonstrating dynamic objects and comparisons
+
+// Defining a dynamic object
+let person1 = { 
+    name = "John", 
+    age = 30, 
+    car = { 
+        name = "Ford", 
+        model = "Mustang" 
+    } 
+}
+
+// Comparing dynamic objects
+let person2 = { 
+    name = "John", 
+    age = 30, 
+    car = { 
+        name = "Ford", 
+        model = "Mustang" 
+    }
+}
+
+print({ person1 = person1, person2 = person2, are_equal = person1 == person2 })
+
+// Adding more attributes to another dynamic object
+let person3 = { name = "John", age = 30, height = 1.8 }
+print({ person3 = person3, are_equal = person2 == person3 })

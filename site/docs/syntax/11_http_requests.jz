@@ -1,0 +1,5 @@
+let response = Http.get("https://anapioficeandfire.com/api/characters/583")
+
+match response {
+    Ok(content) => print(content),
+}

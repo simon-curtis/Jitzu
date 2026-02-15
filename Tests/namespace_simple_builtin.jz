@@ -1,0 +1,11 @@
+// Test 1: Simple built-in types (backward compatibility)
+// These should work without any qualification
+let x: Int = 42
+let s: String = "hello"
+let b: Bool = true
+let d: Double = 3.14
+
+print(x)
+print(s)
+print(b)
+print(d)

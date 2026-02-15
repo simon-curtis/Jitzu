@@ -1,0 +1,37 @@
+// Encoding and decoding JSON in Jitzu
+
+// Defining a structured object
+let john = Person { 
+    name = "John",
+    medals = [1, 2, 3],
+    attack = [
+        Attack { 
+            name = "punch",
+            damage = 10
+        },
+        Attack { 
+            name = "kick",
+            damage = 20
+        }
+    ]
+}
+
+// Encoding the object into JSON
+let json = Json.text(john)
+print("encoded: " + json)
+
+// Decoding JSON back into an object
+let john2 = Json.parse(json)
+print("decoded: " + john2)
+
+// Defining types
+type Person {
+    pub name: String,
+    pub attack: Attack[],
+    pub medals: Int[],
+}
+
+type Attack {
+    pub name: String,
+    pub damage: Int,
+}

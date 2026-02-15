@@ -1,0 +1,96 @@
+{
+  "name": "jitzu.lang",
+  "displayName": "jitzu.lang",
+  "description": "Language support for the Jitzu scripting language",
+  "version": "0.0.1",
+  "scripts": {
+    "deploy:local": "deploy.bat",
+    "build": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "vscode:prepublish": "npm run build"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "debuggers": [
+      {
+        "type": "jitzu",
+        "label": "Jitzu Debug",
+        "languages": [
+          "jitzu"
+        ],
+        "program": "./out/jitzuDebugAdapter.js",
+        "runtime": "node",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the .jz file",
+                "default": "${file}"
+              },
+              "args": {
+                "type": "array",
+                "description": "Arguments for Jitzu runtime",
+                "default": []
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Working directory",
+                "default": "${workspaceFolder}"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "name": "Run Jitzu file",
+            "type": "jitzu",
+            "request": "launch",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "languages": [
+      {
+        "id": "jitzu",
+        "aliases": [
+          "Jitzu",
+          "jitzu"
+        ],
+        "extensions": [
+          ".jz",
+          ".rax"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "jitzu",
+        "scopeName": "source.jitzu",
+        "path": "./syntaxes/jitzu.tmLanguage.json"
+      }
+    ]
+  },
+  "dependencies": {
+    "@vscode/debugadapter": "^1.68.0",
+    "vscode-debugadapter": "^1.51.0",
+    "vscode-debugprotocol": "^1.51.0",
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

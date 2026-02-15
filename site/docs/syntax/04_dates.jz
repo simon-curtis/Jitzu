@@ -1,0 +1,17 @@
+// Parsing and comparing dates
+
+let date1 = try Date.parse("2024-01-01")
+let date2 = try Date.parse("2024-01-01")
+
+print(date1, date2, date1 == date2)
+
+// Working with timestamps
+let date3 = try Date.parse("2024-01-02")
+let time = try Time.parse("12:00:00")
+let timestamp = date3 + time
+
+print(timestamp)
+
+// Comparing timestamps
+let timestamp2 = try Timestamp.parse("2024-01-02 12:00:00")
+print({ are_equal = timestamp == timestamp2 })

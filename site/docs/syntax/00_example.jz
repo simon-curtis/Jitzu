@@ -1,0 +1,45 @@
+open "../shared_code/greet.jz" as { Greet }
+
+type PersonName {
+    pub first: String,
+}
+
+type Person {
+    pub name: PersonName
+}
+
+impl Greet for Person {
+    fun get_greeting(self): String {
+        `Hello, my name is {self.name}!`
+    }
+}
+
+fun get_person(): Result<Object, Error> {
+    let response = try get("https://randomuser.me/api/")
+    return try response.json("results[0]") or Person {
+        name = {
+            first = "Unknown",
+        }
+    }
+}
+
+let result = match get_person() {
+    Ok(result) =>
+        if result is Person p {
+            p.get_greeting()
+        }
+        else {
+            "Unknown"
+        },
+    Err(err) => err
+}
+
+assert(result like String)
+assert(result != "Hello, my name is Unknown!")
+
+let mut i = 0;
+while not i == 0 {
+    print(`Press a key {10 - i} times to quit...`)
+    Console.read_key()
+    i += 1
+}

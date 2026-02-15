@@ -1,0 +1,44 @@
+// Test 9: Multiple user types with various field combinations
+
+type Author {
+    pub name: String,
+    pub email: String
+}
+
+type Tag {
+    pub name: String,
+    pub color: String
+}
+
+type BlogPost {
+    pub title: String,
+    pub content: String,
+    pub author: Author,
+    pub tag: Tag,
+    pub views: Int
+}
+
+let author = Author {
+    name = "Alice Smith",
+    email = "alice@example.com"
+}
+
+let tag = Tag {
+    name = "Technology",
+    color = "blue"
+}
+
+let post = BlogPost {
+    title = "Namespaces in Jitzu",
+    content = "An introduction to namespace support...",
+    author = author,
+    tag = tag,
+    views = 1000
+}
+
+print(post.title)
+print(post.author.name)
+print(post.author.email)
+print(post.tag.name)
+print(post.tag.color)
+print(post.views)

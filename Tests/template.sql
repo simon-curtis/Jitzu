@@ -1,0 +1,1 @@
+SELECT {{Id}} AS [Id], {{Name}} as [Name]

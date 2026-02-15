@@ -1,0 +1,10 @@
+// Functional piping
+fun double(x: Int): Int { return x * 2 }
+fun add(x: Int, y: Int): Int { return x + y }
+
+5 | double | print       // → 10
+5 | add(3) | print       // → 8
+
+// Bitwise OR
+let flags = 5 | 3
+print(flags)              // → 7

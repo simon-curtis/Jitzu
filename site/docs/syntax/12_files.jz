@@ -1,0 +1,25 @@
+// File operations: reading and writing files
+
+let output_file = File.open("ZZ_all_files.txt")
+try output_file.delete() // Deletes the file if it already exists
+
+// Getting a writer for the file
+let writer = try output_file.writer()
+
+// Reading all files in a directory and appending their content
+for file in try Path.read_files(".") {
+    if file == output_file.full_name {
+        continue
+    }
+
+    print(`Writing file {file} to {output_file.full_name}`)
+
+    let file = File.open(file)
+    let content = try file.read_text()
+    try writer.write_text(content)
+}
+
+print(`File written to {output_file.full_name}`)
+
+// TODO: Automatically dropping types that implement the Drop trait
+writer.drop()

@@ -1,0 +1,9 @@
+// Simple vector
+let strings = String[] // or: let strings: String[] = []
+strings.push("Hello")
+print(strings)
+
+// Variant vector
+let things = [1, 'a', false]
+things.push("b")
+print(things)

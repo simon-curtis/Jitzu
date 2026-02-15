@@ -1,0 +1,33 @@
+// Example of conditional logic and loops in Jitzu
+
+// Simple if statement
+if 2 > 1 {
+    print("2 is greater than 1")
+}
+
+// Using if-else-if for multiple conditions
+if 2 < 1 {
+    print("This won't print")
+} else if 1 > 1 {
+    print("Nor this")
+} else {
+    print("But this will")
+}
+
+// Looping through a range (inclusive)
+print("a through c (inclusive):")
+for c in 'a'..='c' {
+   print(` > {c}`)
+}
+
+// Looping through a range (exclusive)
+print("\na to c (exclusive):")
+for c in 'a'..'c' {
+    print(` > {c}`)
+}
+
+// Looping through numbers
+print("\n1 through 5:")
+for i in 1..=5 {
+    print(` > {i}`)
+}

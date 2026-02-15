@@ -1,0 +1,8 @@
+﻿{
+  "args": ["http://localhost:8080/hello/app"],
+  "addOns": {
+    "webServer": {
+      "port": 8080
+    }
+  }
+}

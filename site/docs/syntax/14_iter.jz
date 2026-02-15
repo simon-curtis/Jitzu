@@ -1,0 +1,17 @@
+type Example {
+    mut run: Int = 0
+
+    pub fun next(self): Bool {
+        if self.run == 10_000 {
+            return false
+        }
+
+        self.run += 1
+        true
+    }
+}
+
+let e = Example { run = 0 }
+while e.next() {
+    print(e.run)
+}

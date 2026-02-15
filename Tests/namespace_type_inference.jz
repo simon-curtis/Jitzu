@@ -1,0 +1,30 @@
+// Test 12: Type inference with user-defined types
+
+type Product {
+    pub name: String,
+    pub price: Double
+}
+
+type Order {
+    pub id: Int,
+    pub product: Product,
+    pub quantity: Int
+}
+
+// Without explicit type annotation - should infer types
+let product = Product { name = "Widget", price = 29.99 }
+let order = Order { id = 1, product = product, quantity = 5 }
+
+print(product.name)
+print(product.price)
+
+print(order.id)
+print(order.product.name)
+print(order.quantity)
+
+// With explicit type annotation
+let explicitProduct: Product = Product { name = "Gadget", price = 49.99 }
+let explicitOrder: Order = Order { id = 2, product = explicitProduct, quantity = 3 }
+
+print(explicitProduct.name)
+print(explicitOrder.id)

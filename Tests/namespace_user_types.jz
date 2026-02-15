@@ -1,0 +1,29 @@
+// Test 2: User-defined types
+// Simple user type definition and usage
+
+type Person {
+    pub name: String,
+    pub age: Int
+}
+
+type Address {
+    pub street: String,
+    pub city: String,
+    pub zipcode: String
+}
+
+let person = Person {
+    name = "Alice",
+    age = 30
+}
+
+let address = Address {
+    street = "123 Main St",
+    city = "Springfield",
+    zipcode = "12345"
+}
+
+print(person.name)
+print(person.age)
+print(address.street)
+print(address.city)

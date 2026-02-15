@@ -1,0 +1,24 @@
+type Example {
+    mut run: Int,
+    limit: Int
+}
+
+impl Iter for Example {
+    type T = String
+
+    fun next(self): Bool {
+        if self.run == self.limit {
+            return false
+        }
+
+        self.run += 1
+        true
+    }
+}
+
+let limit = try Int.parse(args[0])
+let e = Example { run = 0, limit }
+
+while e.next() {
+    print(e.run)
+}

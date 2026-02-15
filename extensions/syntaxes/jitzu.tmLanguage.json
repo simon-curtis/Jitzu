@@ -1,0 +1,936 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Jitzu",
+	"scopeName": "source.jitzu",
+	"patterns": [
+		{
+			"include": "#import_statement"
+		},
+		{
+			"include": "#package_statement"
+		},
+		{
+			"include": "#expression"
+		},
+		{
+			"include": "#operator"
+		},
+		{
+			"include": "#comment"
+		},
+		{
+			"include": "#keyword"
+		}
+	],
+	"repository": {
+		"expression": {
+			"patterns": [
+				{
+					"include": "#comment"
+				},
+				{
+					"include": "#open_statement"
+				},
+				{
+					"include": "#function_declaration"
+				},
+				{
+					"include": "#type_definition"
+				},
+				{
+					"include": "#trait_definition"
+				},
+				{
+					"include": "#impl_definition"
+				},
+				{
+					"include": "#let_expression"
+				},
+				{
+					"include": "#enum_definition"
+				},
+				{
+					"include": "#if_expression"
+				},
+				{
+					"include": "#while_expression"
+				},
+				{
+					"include": "#try_expression"
+				},
+				{
+					"include": "#match_expression"
+				},
+				{
+					"include": "#for_expression"
+				},
+				{
+					"include": "#defer_expression"
+				},
+				{
+					"include": "#return_statement"
+				},
+				{
+					"include": "#method_call"
+				},
+				{
+					"include": "#static_member_access"
+				},
+				{
+					"include": "#function_call"
+				},
+				{
+					"include": "#pattern_match"
+				},
+				{
+					"include": "#logic_chain"
+				},
+				{
+					"include": "#array_shorthand"
+				},
+				{
+					"include": "#lambda"
+				},
+				{
+					"include": "#block"
+				},
+				{
+					"include": "#value"
+				},
+				{
+					"include": "#keyword"
+				},
+				{
+					"include": "#identifier"
+				}
+			]
+		},
+		"block": {
+			"name": "meta.block.jitzu",
+			"begin": "\\{",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.section.block.begin.jitzu"
+				}
+			},
+			"end": "\\}",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.section.block.end.jitzu"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"return_statement": {
+			"comment": "syntax: return <expression>?",
+			"name": "meta.return.jitzu",
+			"match": "\\b(return)(?:\\s+([^\\n]+))?",
+			"captures": {
+				"1": {
+					"name": "keyword.control.jitzu"
+				},
+				"2": {
+					"name": "meta.return.expression.jitzu",
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				}
+			}
+		},
+		"method_call": {
+			"comment": "syntax: <Type>.<method>(<args>)",
+			"name": "meta.method.call.jitzu",
+			"begin": "\\b([A-Z][a-zA-Z0-9_]*)\\.([a-z_][a-zA-Z0-9_]*)\\(",
+			"beginCaptures": {
+				"1": {
+					"name": "support.type.jitzu"
+				},
+				"2": {
+					"name": "entity.name.function.jitzu"
+				}
+			},
+			"end": "\\)",
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"import_statement": {
+			"comment": "use <name|url> [as <alias>] [{<name>*}]",
+			"name": "meta.import.jitzu",
+			"match": "\\b(use)\\s+([^\\s]+)(?:\\s+(as)\\s+([^\\s]+))?(?:\\s*(\\{([^}]+)\\}))?",
+			"captures": {
+				"1": {
+					"name": "keyword.other.jitzu"
+				},
+				"2": {
+					"name": "meta.import.source.jitzu",
+					"patterns": [
+						{
+							"include": "#identifier"
+						},
+						{
+							"include": "#string"
+						}
+					]
+				},
+				"3": {
+					"name": "keyword.other.jitzu"
+				},
+				"4": {
+					"name": "meta.import.alias.jitzu",
+					"patterns": [
+						{
+							"include": "#identifier"
+						}
+					]
+				},
+				"6": {
+					"name": "meta.import.names.jitzu",
+					"patterns": [
+						{
+							"include": "#identifier"
+						}
+					]
+				}
+			}
+		},
+		"open_statement": {
+			"comment": "syntax: open <url|path>",
+			"name": "meta.open.jitzu",
+			"match": "^(open)\\s+(.+)?$",
+			"captures": {
+				"1": {
+					"name": "keyword.other.jitzu"
+				},
+				"2": {
+					"name": "string.quoted.double"
+				}
+			}
+		},
+		"package_statement": {
+			"comment": "package <name>(.<name>)*",
+			"name": "meta.package.jitzu",
+			"match": "\\b(package)\\s+([a-z_][a-zA-Z0-9_]*(?:\\.[a-z_][a-zA-Z0-9_]*)*)",
+			"captures": {
+				"1": {
+					"name": "keyword.other.jitzu"
+				},
+				"2": {
+					"name": "entity.name.namespace.jitzu"
+				}
+			}
+		},
+		"lambda": {
+			"comment": "Lambda example: (param) => expression",
+			"name": "meta.lambda.jitzu",
+			"match": "(\\w+|\\([^)]*\\))\\s*(=>)\\s*([^\\n]+)",
+			"captures": {
+				"1": {
+					"name": "meta.lambda.parameters.jitzu",
+					"patterns": [
+						{
+							"include": "#identifier"
+						}
+					]
+				},
+				"2": {
+					"name": "storage.type.function.arrow.jitzu"
+				},
+				"3": {
+					"name": "meta.lambda.body.jitzu",
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				}
+			}
+		},
+		"array_shorthand": {
+			"comment": "Array literal: [1,2,3]",
+			"name": "meta.array.shorthand.jitzu",
+			"begin": "\\[",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.section.array.begin.jitzu"
+				}
+			},
+			"end": "\\]",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.section.array.end.jitzu"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"let_expression": {
+			"comment": "syntax: (let|const) <identifier> = <expression>",
+			"name": "meta.let.jitzu",
+			"begin": "\\b(let|const)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(=)",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.other.jitzu"
+				},
+				"2": {
+					"name": "variable.other.jitzu"
+				},
+				"3": {
+					"name": "keyword.operator.assignment.jitzu"
+				}
+			},
+			"end": "(?=\\n|$|;)",
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"enum_definition": {
+			"comment": "syntax: enum <identifier> { <variant>* }",
+			"name": "meta.enum_definition.jitzu",
+			"begin": "\\b(enum)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\{",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.other.jitzu"
+				},
+				"2": {
+					"name": "entity.name.type.enum.jitzu"
+				}
+			},
+			"end": "\\}",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.section.block.end.jitzu"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#variant"
+				}
+			]
+		},
+		"variant": {
+			"comment": "syntax: <identifier>(<type>)?",
+			"name": "meta.variant.jitzu",
+			"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*:\\s*([^,}]+))?",
+			"captures": {
+				"1": {
+					"name": "constant.other.enum.jitzu"
+				},
+				"2": {
+					"name": "entity.name.type.jitzu"
+				}
+			}
+		},
+		"if_expression": {
+			"comment": "syntax: if <condition> { <statement>* }",
+			"name": "meta.if.jitzu",
+			"begin": "\\b(if)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.jitzu"
+				}
+			},
+			"end": "(?=\\{)",
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"while_expression": {
+			"comment": "syntax: while <condition> { <statement>* }",
+			"name": "meta.while.jitzu",
+			"begin": "\\b(while)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.jitzu"
+				}
+			},
+			"end": "(?=\\{)",
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"try_expression": {
+			"patterns": [
+				{
+					"name": "meta.try.block.jitzu",
+					"begin": "\\b(try)\\s*(\\{)",
+					"beginCaptures": {
+						"1": {
+							"name": "keyword.control.jitzu"
+						},
+						"2": {
+							"name": "punctuation.section.block.begin.jitzu"
+						}
+					},
+					"end": "\\}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.block.end.jitzu"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				},
+				{
+					"name": "meta.try.jitzu",
+					"match": "\\b(try)\\s+([^\\n]+)",
+					"captures": {
+						"1": {
+							"name": "keyword.control.jitzu"
+						},
+						"2": {
+							"name": "meta.try.expression.jitzu",
+							"patterns": [
+								{
+									"include": "#expression"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		"match_expression": {
+			"comment": "syntax: match <expression> { <case>* }",
+			"name": "meta.match.jitzu",
+			"begin": "\\b(match)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.jitzu"
+				}
+			},
+			"end": "(?=\\{)",
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"for_expression": {
+			"comment": "syntax: for <identifier> in <expression> { <statement>* }",
+			"name": "meta.for.jitzu",
+			"begin": "\\b(for)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s+(in)\\s+",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.jitzu"
+				},
+				"2": {
+					"name": "variable.other.jitzu"
+				},
+				"3": {
+					"name": "keyword.control.jitzu"
+				}
+			},
+			"end": "(?=\\{)",
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"static_member_access": {
+			"name": "meta.static_member_access.jitzu",
+			"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)::",
+			"captures": {
+				"1": {
+					"name": "entity.name.type.jitzu"
+				}
+			}
+		},
+		"defer_expression": {
+			"comment": "syntax: defer <expression>",
+			"name": "meta.defer.jitzu",
+			"match": "\\b(defer)\\s+([^\\n]+)",
+			"captures": {
+				"1": {
+					"name": "keyword.control.jitzu"
+				},
+				"2": {
+					"name": "meta.defer.expression.jitzu",
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				}
+			}
+		},
+		"case": {
+			"comment": "syntax: <expression> => <expression>",
+			"name": "meta.match.case.jitzu",
+			"match": "([^=]+)\\s*(=>)\\s*([^\\n]+)",
+			"captures": {
+				"1": {
+					"name": "meta.match.case.pattern.jitzu",
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				},
+				"2": {
+					"name": "storage.type.function.arrow.jitzu"
+				},
+				"3": {
+					"name": "meta.match.case.expression.jitzu",
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				}
+			}
+		},
+		"trait_definition": {
+			"comment": "syntax: trait <identifier> { <function_signature>* }",
+			"name": "meta.trait_definition.jitzu",
+			"begin": "\\b(trait)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\{",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.other.jitzu"
+				},
+				"2": {
+					"name": "entity.name.type.trait.jitzu"
+				}
+			},
+			"end": "\\}",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.section.block.end.jitzu"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#function_signature"
+				}
+			]
+		},
+		"impl_definition": {
+			"comment": "syntax: impl <trait> for <type> { <function_declaration>* }",
+			"name": "meta.impl_definition.jitzu",
+			"begin": "\\b(impl)\\s+([a-zA-Z_][a-zA-Z0-9_<>]*)\\s+(for)\\s+([a-zA-Z_][a-zA-Z0-9_<>]*)\\s*\\{",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.other.jitzu"
+				},
+				"2": {
+					"name": "entity.name.type.trait.jitzu"
+				},
+				"3": {
+					"name": "keyword.other.jitzu"
+				},
+				"4": {
+					"name": "entity.name.type.jitzu"
+				}
+			},
+			"end": "\\}",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.section.block.end.jitzu"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#function_declaration"
+				}
+			]
+		},
+		"function_parameters": {
+			"name": "meta.function.parameters.jitzu",
+			"patterns": [
+				{
+					"include": "#function_parameter"
+				},
+				{
+					"match": ",",
+					"name": "punctuation.separator.parameter.jitzu"
+				}
+			]
+		},
+		"function_parameter": {
+			"comment": "syntax: <identifier>(: <type>)?",
+			"name": "meta.parameter.jitzu",
+			"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*:\\s*([a-zA-Z_][a-zA-Z0-9_<>]*))?",
+			"captures": {
+				"1": {
+					"name": "variable.parameter.jitzu"
+				},
+				"2": {
+					"name": "entity.name.type.jitzu"
+				}
+			}
+		},
+		"function_declaration": {
+			"patterns": [
+				{
+					"name": "meta.function_declaration.jitzu",
+					"begin": "\\b(pub\\s+)?(fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)(<[^>]*>)?\\s*\\(([^)]*)\\)(?:\\s*:\\s*([a-zA-Z_][a-zA-Z0-9_<>]+))?\\s*\\{",
+					"beginCaptures": {
+						"1": {
+							"name": "storage.modifier.jitzu"
+						},
+						"2": {
+							"name": "keyword.other.jitzu"
+						},
+						"3": {
+							"name": "entity.name.function.jitzu"
+						},
+						"4": {
+							"name": "meta.function_declaration.generics.jitzu"
+						},
+						"5": {
+							"name": "meta.function_declaration.parameters.jitzu",
+							"patterns": [
+								{
+									"include": "#function_parameters"
+								}
+							]
+						},
+						"6": {
+							"name": "entity.name.type.jitzu"
+						}
+					},
+					"end": "\\}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.block.end.jitzu"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				}
+			]
+		},
+		"function_signature": {
+			"name": "meta.function_signature.jitzu",
+			"match": "\\b(pub\\s+)?(fun)\\s+([a-zA-Z_][a-zA-Z0-9_]*)(<[^>]*>)?\\s*\\(([^)]*)\\)(?:\\s*:\\s*([a-zA-Z_][a-zA-Z0-9_<>]+))?",
+			"captures": {
+				"1": {
+					"name": "storage.modifier.jitzu"
+				},
+				"2": {
+					"name": "keyword.other.jitzu"
+				},
+				"3": {
+					"name": "entity.name.function.jitzu"
+				},
+				"4": {
+					"name": "meta.function_signature.generics.jitzu"
+				},
+				"5": {
+					"name": "meta.function_signature.parameters.jitzu",
+					"patterns": [
+						{
+							"include": "#function_parameters"
+						}
+					]
+				},
+				"6": {
+					"name": "entity.name.type.jitzu"
+				}
+			}
+		},
+		"type_definition": {
+			"patterns": [
+				{
+					"comment": "syntax: type <identifier> { <field>* }",
+					"name": "meta.type_definition.jitzu",
+					"begin": "\\b(type)\\s+([a-zA-Z_][a-zA-Z0-9_<>]*)\\s*\\{",
+					"beginCaptures": {
+						"1": {
+							"name": "keyword.other.jitzu"
+						},
+						"2": {
+							"name": "entity.name.type.jitzu"
+						}
+					},
+					"end": "\\}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.block.end.jitzu"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#field"
+						},
+						{
+							"include": "#function_declaration"
+						},
+						{
+							"include": "#comment"
+						}
+					]
+				},
+				{
+					"comment": "syntax: type <identifier>",
+					"name": "meta.type_definition.jitzu",
+					"match": "\\b(type)\\s+([a-zA-Z_][a-zA-Z0-9_<>]*)",
+					"captures": {
+						"1": {
+							"name": "keyword.other.jitzu"
+						},
+						"2": {
+							"name": "entity.name.type.jitzu"
+						}
+					}
+				}
+			]
+		},
+		"field": {
+			"comment": "syntax: pub? <identifier>: <type>",
+			"name": "meta.field.jitzu",
+			"match": "\\b(pub\\s+)?([a-z][a-z0-9_]*)\\s*:\\s*([a-zA-Z_][a-zA-Z0-9_<>]*)",
+			"captures": {
+				"1": {
+					"name": "storage.modifier.jitzu"
+				},
+				"2": {
+					"name": "variable.other.member.jitzu"
+				},
+				"3": {
+					"name": "entity.name.type.jitzu"
+				}
+			}
+		},
+		"keyword": {
+			"patterns": [
+				{
+					"match": "\\b(let|use|package|trait|impl|fun|type|pub|enum|in|const|as)\\b",
+					"name": "keyword.other.jitzu"
+				},
+				{
+					"match": "\\b(defer|match|if|return|exit|try|is|not|ignore|for|and|or|while)\\b",
+					"name": "keyword.control.jitzu"
+				}
+			]
+		},
+		"value": {
+			"patterns": [
+				{
+					"include": "#number"
+				},
+				{
+					"include": "#boolean"
+				},
+				{
+					"include": "#string"
+				}
+			]
+		},
+		"number": {
+			"match": "\\b([0-9_]+(?:\\.[0-9]+)?)\\b",
+			"name": "constant.numeric.jitzu"
+		},
+		"boolean": {
+			"match": "\\b(true|false)\\b",
+			"name": "constant.language.boolean.jitzu"
+		},
+		"string": {
+			"patterns": [
+				{
+					"name": "string.quoted.double.jitzu",
+					"begin": "\"",
+					"end": "\"",
+					"patterns": [
+						{
+							"include": "#string_escaped_char"
+						}
+					]
+				},
+				{
+					"comment": "Template string with interpolation",
+					"name": "string.template.jitzu",
+					"begin": "`",
+					"end": "`",
+					"patterns": [
+						{
+							"name": "meta.embedded.line.jitzu",
+							"begin": "\\{",
+							"end": "\\}",
+							"beginCaptures": {
+								"0": {
+									"name": "punctuation.section.embedded.begin.jitzu"
+								}
+							},
+							"endCaptures": {
+								"0": {
+									"name": "punctuation.section.embedded.end.jitzu"
+								}
+							},
+							"patterns": [
+								{
+									"include": "#expression"
+								}
+							]
+						},
+						{
+							"include": "#string_escaped_char"
+						}
+					]
+				}
+			]
+		},
+		"string_escaped_char": {
+			"patterns": [
+				{
+					"match": "\\\\([0-7]{3}|[abfnrtv\\\\'\"]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})",
+					"name": "constant.character.escape.jitzu"
+				},
+				{
+					"match": "\\\\.",
+					"name": "invalid.illegal.unknown-escape.jitzu"
+				}
+			]
+		},
+		"logic_chain": {
+			"comment": "Logical operations: and, or",
+			"name": "meta.logic_chain.jitzu",
+			"match": "\\b(and|or)\\b",
+			"captures": {
+				"1": {
+					"name": "keyword.operator.logical.jitzu"
+				}
+			}
+		},
+		"pattern_match": {
+			"comment": "Pattern matching: expression is [not] pattern",
+			"name": "meta.pattern_match.jitzu",
+			"match": "\\b(is)\\s+(not\\s+)?(true|false|[a-zA-Z_][a-zA-Z0-9_]*|\"[^\"]*\"|'[^']*'|\\d+)\\b",
+			"captures": {
+				"1": {
+					"name": "keyword.jitzu"
+				},
+				"2": {
+					"name": "keyword.operator.logical.jitzu"
+				},
+				"3": {
+					"name": "meta.pattern_match.value.jitzu",
+					"patterns": [
+						{
+							"include": "#value"
+						},
+						{
+							"include": "#identifier"
+						}
+					]
+				}
+			}
+		},
+		"function_call": {
+			"comment": "Function calls",
+			"name": "meta.function.call.jitzu",
+			"begin": "\\b([a-z_][a-zA-Z0-9_]*)(<[^>]*>)?\\s*\\(",
+			"beginCaptures": {
+				"1": {
+					"name": "entity.name.function.jitzu"
+				},
+				"2": {
+					"name": "meta.generic.jitzu"
+				}
+			},
+			"end": "\\)",
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"identifier": {
+			"patterns": [
+				{
+					"match": "(\\#sys)\\b",
+					"name": "variable.language.jitzu"
+				},
+				{
+					"match": "\\b(print|println|map|do|like|into|read_line|exit)\\b",
+					"name": "support.function.builtin.jitzu"
+				},
+				{
+					"comment": "Built-in types",
+					"match": "\\b(File|Path|Int|String|Array|Option|Result)\\b",
+					"name": "support.type.builtin.jitzu"
+				},
+				{
+					"comment": "User-defined types (PascalCase)",
+					"match": "\\b([A-Z][a-zA-Z0-9_]*)\\b",
+					"name": "entity.name.type.jitzu"
+				},
+				{
+					"comment": "Variables and functions (camelCase/snake_case)",
+					"match": "\\b([a-z_][a-zA-Z0-9_]*)\\b",
+					"name": "variable.other.jitzu"
+				}
+			]
+		},
+		"comment": {
+			"patterns": [
+				{
+					"match": "//.*$",
+					"name": "comment.line.double-slash.jitzu"
+				},
+				{
+					"begin": "/\\*",
+					"end": "\\*/",
+					"name": "comment.block.jitzu"
+				}
+			]
+		},
+		"operator": {
+			"comment": "Operators",
+			"match": "(==|!=|<=|>=|<|>|=|\\+|\\-|\\*|/|%)",
+			"name": "keyword.operator.jitzu"
+		},
+		"punctuation": {
+			"patterns": [
+				{
+					"match": "\\{",
+					"name": "punctuation.section.block.begin.jitzu"
+				},
+				{
+					"match": "\\}",
+					"name": "punctuation.section.block.end.jitzu"
+				},
+				{
+					"match": "\\(",
+					"name": "punctuation.section.group.begin.jitzu"
+				},
+				{
+					"match": "\\)",
+					"name": "punctuation.section.group.end.jitzu"
+				},
+				{
+					"match": "(=>)",
+					"name": "storage.type.function.arrow.jitzu"
+				},
+				{
+					"match": "(->)",
+					"name": "storage.type.function.arrow.jitzu"
+				}
+			]
+		}
+	}
+}

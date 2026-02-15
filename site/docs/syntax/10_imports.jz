@@ -1,0 +1,3 @@
+open "./10a_importable_functions.jz"
+
+print(Add(1, 2))

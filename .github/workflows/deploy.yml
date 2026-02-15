@@ -1,0 +1,56 @@
+name: Build & Deploy React App to Cloudflare Pages (Bun)
+
+on:
+  push:
+    paths:
+      - "site/**"
+      - ".github/workflows/deploy.yml"
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install Bun
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # Cache Bun dependencies
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('site/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      # Install & build
+      - name: Install dependencies & build
+        run: |
+          cd site
+          bun install
+          bun run build
+
+      # Install Wrangler
+      - name: Install Wrangler
+        run: bun add -g wrangler
+
+      # Deploy to Cloudflare Pages
+      - name: Publish to Cloudflare Pages
+        run: |
+          cd site
+          wrangler pages publish dist \
+            --project-name ${{ secrets.CLOUDFLARE_PROJECT_NAME }} \
+            --branch main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

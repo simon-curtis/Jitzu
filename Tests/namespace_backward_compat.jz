@@ -1,0 +1,27 @@
+// Test 10: Backward compatibility - ensure existing code still works
+// This script should work exactly as before without any namespace qualification
+
+let x = 42
+let y = "world"
+let z = true
+
+print(x)
+print(y)
+print(z)
+
+// Built-in types without qualification
+let a: Int = 100
+let b: String = "hello"
+let c: Bool = false
+
+print(a)
+print(b)
+print(c)
+
+// User type without qualification
+type SimpleType {
+    pub value: Int
+}
+
+let simple = SimpleType { value = 999 }
+print(simple.value)

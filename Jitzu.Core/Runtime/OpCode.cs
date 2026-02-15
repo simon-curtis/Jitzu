@@ -1,0 +1,47 @@
+﻿using NetEscapades.EnumGenerators;
+
+namespace Jitzu.Core.Runtime;
+
+[EnumExtensions]
+public enum OpCode : byte
+{
+    None,
+    Dup,
+    LoadConst,
+    SetLocal,
+    GetLocal,
+    SetGlobal,
+    GetGlobal,
+    Construct,
+    GetField,
+    SetField,
+    Call,
+    Return,
+    Pop,
+    Jump,
+    JumpIfFalse,
+    Loop,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    TryUnwrap,
+    IndexGet,
+    IndexSet,
+    Lt,
+    Lte,
+    Gt,
+    Gte,
+    Eq,
+    Compare,
+    NewArray,
+    Inc,
+    Dec,
+    NewString,
+    NewInt,
+    NewDouble,
+    Swap,
+    UnwrapUnion,
+    BitwiseOr,
+}

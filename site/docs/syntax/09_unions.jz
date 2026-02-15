@@ -1,0 +1,16 @@
+// Using unions and pattern matching
+
+union Pet {
+    Fish,
+    Cat(String),
+    None,
+}
+
+let pet = Pet.Cat("Lando")
+
+// Using match for pattern matching
+match pet {
+    Fish => print("Fish don't need names"),
+    Cat(name) => print("Hello there " + name),
+    None => print("No pets"),
+}

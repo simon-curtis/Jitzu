@@ -1,0 +1,2 @@
+﻿let message = try Http.get(args.0)
+print(message.json())

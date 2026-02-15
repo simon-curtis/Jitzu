@@ -1,0 +1,22 @@
+﻿let a = 200
+let b = 3
+
+print(a + b)
+print(a + b)
+print(a - b)
+print(a - b)
+print(a / b)
+print(a / b)
+print(a * b)
+print(a * b)
+
+let c = 200.0
+
+print(c + b)
+print(c + b)
+print(c - b)
+print(c - b)
+print(c / b)
+print(c / b)
+print(c * b)
+print(c * b)

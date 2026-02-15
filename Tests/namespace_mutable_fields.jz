@@ -1,0 +1,30 @@
+// Test 7: User types with mutable fields
+
+type Counter {
+    pub name: String,
+    mut value: Int
+}
+
+type Config {
+    pub appName: String,
+    mut debugMode: Bool,
+    mut maxConnections: Int
+}
+
+let counter = Counter {
+    name = "RequestCounter",
+    value = 0
+}
+
+let config = Config {
+    appName = "MyApp",
+    debugMode = true,
+    maxConnections = 100
+}
+
+print(counter.name)
+print(counter.value)
+
+print(config.appName)
+print(config.debugMode)
+print(config.maxConnections)

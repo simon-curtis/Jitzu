@@ -1,0 +1,25 @@
+trait TotallyNormalHumanBehaviour {
+    fun say_hello(self, name: String): String
+}
+
+type Person {
+    pub name: String
+}
+
+impl TotallyNormalHumanBehaviour for Person {
+    fun say_hello(self, name: String): String {
+        print(`Hello {name}, im {self.name}`)
+    }
+}
+
+impl Drop for Person {
+    fun drop(self) {
+        print(`Dropping {self.name}`)
+    }
+}
+
+let person = Person { 
+    name = "John"
+}
+person.say_hello("Jim")
+person.drop()

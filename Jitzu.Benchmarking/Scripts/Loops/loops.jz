@@ -1,0 +1,9 @@
+﻿let limit = Int.parse(args[0].or("10000"))
+let i = 0
+
+try File.write_all_text("..", "")
+
+while i < limit {
+  print(i)
+  i++
+}

@@ -1,0 +1,31 @@
+// Test 8: Multiple independent user-defined types with various fields
+// Each type uses only built-in types to avoid forward reference issues
+
+type Coordinate {
+    pub latitude: Double,
+    pub longitude: Double
+}
+
+type City {
+    pub name: String,
+    pub populationMillions: Int
+}
+
+type Country {
+    pub name: String,
+    pub capital: String,
+    pub gdpTrillion: Double
+}
+
+let coord1 = Coordinate { latitude = 40.7128, longitude = 74.0060 }
+print(coord1.latitude)
+print(coord1.longitude)
+
+let city = City { name = "Tokyo", populationMillions = 37 }
+print(city.name)
+print(city.populationMillions)
+
+let country = Country { name = "Japan", capital = "Tokyo", gdpTrillion = 4.2 }
+print(country.name)
+print(country.capital)
+print(country.gdpTrillion)

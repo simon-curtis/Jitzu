@@ -1,0 +1,36 @@
+// Test 3: User types with complex field types (arrays, nested types)
+
+type Contact {
+    pub name: String,
+    pub email: String
+}
+
+type Company {
+    pub name: String,
+    pub employees: Contact
+}
+
+type Inventory {
+    pub itemName: String,
+    pub quantity: Int
+}
+
+let contact = Contact {
+    name = "Bob",
+    email = "bob@example.com"
+}
+
+let company = Company {
+    name = "TechCorp",
+    employees = contact
+}
+
+let item = Inventory {
+    itemName = "Widget",
+    quantity = 100
+}
+
+print(company.name)
+print(company.employees.name)
+print(item.itemName)
+print(item.quantity)

@@ -1,0 +1,21 @@
+// Benchmark: Large Array Sorting
+
+// Generate a large array of random integers
+let numbers = []
+let size = try Int.parse(args[0])
+
+for i in 0..size {
+    numbers.add(rand(0, 1_000_000)) // assume rand(min, max) exists
+}
+
+// Record start time
+let start = DateTime.now()
+
+// Sort the array
+numbers.sort()
+
+// Record end time
+let end = DateTime.now()
+
+// Print results
+print("Sorted " + size + " integers in " + (end - start) + " ms")

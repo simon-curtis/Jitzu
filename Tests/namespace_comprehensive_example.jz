@@ -1,0 +1,63 @@
+// Test 13: Comprehensive example combining multiple namespace features
+
+// Define a simple type for representing dates
+type Date {
+    pub year: Int,
+    pub month: Int,
+    pub day: Int
+}
+
+// Define a person type
+type Person {
+    pub firstName: String,
+    pub lastName: String,
+    pub birthDate: Date,
+    pub email: String
+}
+
+// Define an organization
+type Organization {
+    pub name: String,
+    pub foundedDate: Date,
+    pub employees: Int
+}
+
+// Define a contract between a person and organization
+type Employment {
+    pub person: Person,
+    pub organization: Organization,
+    pub startDate: Date,
+    pub position: String
+}
+
+// Create sample data
+let birthDate = Date { year = 1990, month = 5, day = 15 }
+let person = Person {
+    firstName = "John",
+    lastName = "Doe",
+    birthDate = birthDate,
+    email = "john.doe@example.com"
+}
+
+let foundedDate = Date { year = 2010, month = 1, day = 1 }
+let org = Organization {
+    name = "TechCorp Inc",
+    foundedDate = foundedDate,
+    employees = 500
+}
+
+let startDate = Date { year = 2023, month = 6, day = 1 }
+let employment = Employment {
+    person = person,
+    organization = org,
+    startDate = startDate,
+    position = "Senior Engineer"
+}
+
+// Print results
+print(employment.person.firstName)
+print(employment.person.lastName)
+print(employment.person.email)
+print(employment.organization.name)
+print(employment.position)
+print(employment.startDate.year)
