@@ -4,7 +4,11 @@ on:
   push:
     tags:
       - 'v0.1.*'
+      - '0.1.*'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -42,7 +46,7 @@ jobs:
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./publish/jz-${{ matrix.suffix }}
+            -o ./publish/${{ matrix.suffix }}
       
       - name: Publish Shell (jzsh)
         run: |
@@ -52,54 +56,52 @@ jobs:
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./publish/jzsh-${{ matrix.suffix }}
+            -o ./publish/${{ matrix.suffix }}
       
       - name: Install 7z
         if: matrix.runtime == 'win-x64'
         run: sudo apt-get install -y p7zip-full
       
-      - name: Create ZIP
+      - name: Create ZIPs
         run: |
-          cd publish
-          if [ "${{ matrix.runtime }}" = "win-x64" ]; then
-            7z a -tzip jitzu-v0.1.0-${{ matrix.suffix }}.zip jz-${{ matrix.suffix }}/
-            7z a -tzip jitzu-shell-v0.1.0-${{ matrix.suffix }}.zip jzsh-${{ matrix.suffix }}/
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG=${GITHUB_REF#refs/tags/}
+            VERSION=${TAG#v}
           else
-            zip -r jitzu-v0.1.0-${{ matrix.suffix }}.zip jz-${{ matrix.suffix }}/
-            zip -r jitzu-shell-v0.1.0-${{ matrix.suffix }}.zip jzsh-${{ matrix.suffix }}/
+            VERSION="0.1.0"
+          fi
+          cd publish/${{ matrix.suffix }}
+          if [ "${{ matrix.runtime }}" = "win-x64" ]; then
+            7z a -tzip ../jitzu-${VERSION}-${{ matrix.suffix }}.zip jz.exe jzsh.exe
+          else
+            zip ../jitzu-${VERSION}-${{ matrix.suffix }}.zip jz jzsh
           fi
       
-      - name: Upload Artifacts
+      - name: Upload ZIP artifacts
         uses: actions/upload-artifact@v4
         with:
           name: jitzu-${{ matrix.suffix }}
-          path: publish/*.zip
-          retention-days: 30
+          path: publish/jitzu-0.1.0-${{ matrix.suffix }}.zip
+          retention-days: 1
 
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     
     steps:
-      - name: Download Artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-      
+          merge-multiple: true
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
-          name: Jitzu v0.1.0
+          files: artifacts/*.zip
+          name: Jitzu 0.1.0
           draft: true
-          body: |
-            ## Downloads
-            - **jitzu-v0.1.0-linux-x64.zip** - Linux x64
-            - **jitzu-v0.1.0-win-x64.zip** - Windows x64
-            - **jitzu-v0.1.0-osx-x64.zip** - macOS x64
-            - **jitzu-v0.1.0-osx-arm64.zip** - macOS ARM
-            
-            Each zip contains:
-            - `jz` - Jitzu interpreter
-            - `jzsh` - Jitzu shell
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
