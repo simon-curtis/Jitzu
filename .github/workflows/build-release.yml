@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v0.1.*'
+      - '0.1.*'
   workflow_dispatch:
 
 jobs:
@@ -60,13 +61,15 @@ jobs:
       
       - name: Create ZIP
         run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
           cd publish
           if [ "${{ matrix.runtime }}" = "win-x64" ]; then
-            7z a -tzip jitzu-v0.1.0-${{ matrix.suffix }}.zip jz-${{ matrix.suffix }}/
-            7z a -tzip jitzu-shell-v0.1.0-${{ matrix.suffix }}.zip jzsh-${{ matrix.suffix }}/
+            7z a -tzip jitzu-${VERSION}-${{ matrix.suffix }}.zip jz-${{ matrix.suffix }}/
+            7z a -tzip jitzu-shell-${VERSION}-${{ matrix.suffix }}.zip jzsh-${{ matrix.suffix }}/
           else
-            zip -r jitzu-v0.1.0-${{ matrix.suffix }}.zip jz-${{ matrix.suffix }}/
-            zip -r jitzu-shell-v0.1.0-${{ matrix.suffix }}.zip jzsh-${{ matrix.suffix }}/
+            zip -r jitzu-${VERSION}-${{ matrix.suffix }}.zip jz-${{ matrix.suffix }}/
+            zip -r jitzu-shell-${VERSION}-${{ matrix.suffix }}.zip jzsh-${{ matrix.suffix }}/
           fi
       
       - name: Upload Artifacts
@@ -79,7 +82,6 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
       - name: Download Artifacts
@@ -87,18 +89,25 @@ jobs:
         with:
           path: artifacts
       
+      - name: Prepare Release Info
+        id: release-info
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
-          name: Jitzu v0.1.0
+          name: Jitzu ${{ steps.release-info.outputs.version }}
           draft: true
           body: |
             ## Downloads
-            - **jitzu-v0.1.0-linux-x64.zip** - Linux x64
-            - **jitzu-v0.1.0-win-x64.zip** - Windows x64
-            - **jitzu-v0.1.0-osx-x64.zip** - macOS x64
-            - **jitzu-v0.1.0-osx-arm64.zip** - macOS ARM
+            - **jitzu-${{ steps.release-info.outputs.version }}-linux-x64.zip** - Linux x64
+            - **jitzu-${{ steps.release-info.outputs.version }}-win-x64.zip** - Windows x64
+            - **jitzu-${{ steps.release-info.outputs.version }}-osx-x64.zip** - macOS x64
+            - **jitzu-${{ steps.release-info.outputs.version }}-osx-arm64.zip** - macOS ARM
             
             Each zip contains:
             - `jz` - Jitzu interpreter
