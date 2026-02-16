@@ -23,7 +23,7 @@ public sealed class ThemeConfig
     private static readonly FrozenDictionary<string, string> Defaults = new Dictionary<string, string>
     {
         ["syntax.command"]    = "#87af87",
-        ["syntax.keyword"]    = "#d7afaf",
+        ["syntax.keyword"]    = "#87afd7",
         ["syntax.string"]     = "#afaf87",
         ["syntax.flag"]       = "#87afaf",
         ["syntax.pipe"]       = "#af87af",

@@ -1,0 +1,198 @@
+---
+title: "Traits & Methods"
+description: "Define methods on types and declare shared behavior with traits in Jitzu."
+section: "Language"
+order: 11
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Traits & Methods
+
+Jitzu supports defining methods on types and declaring shared behavior contracts with traits.
+
+## Type Methods
+
+Define methods directly inside a `type` block. Methods that take `self` as the first parameter are instance methods — call them with dot notation.
+
+<CodeBlock language="jitzu" code={`type Circle {
+    pub radius: Double
+
+    fun area(self): Double {
+        3.14159 * self.radius * self.radius
+    }
+
+    fun describe(self): String {
+        \`Circle with radius {self.radius}\`
+    }
+}
+
+let c = Circle { radius = 5.0 }
+print(c.area())      // 78.53975
+print(c.describe())  // "Circle with radius 5"`} />
+
+### Methods with Parameters
+
+<CodeBlock language="jitzu" code={`type Rectangle {
+    pub width: Double,
+    pub height: Double
+
+    fun area(self): Double {
+        self.width * self.height
+    }
+
+    fun scale(self, factor: Double): Rectangle {
+        Rectangle {
+            width = self.width * factor,
+            height = self.height * factor,
+        }
+    }
+
+    fun is_larger_than(self, other: Rectangle): Bool {
+        self.area() > other.area()
+    }
+}
+
+let r = Rectangle { width = 10.0, height = 5.0 }
+print(r.area())  // 50.0
+
+let big = r.scale(2.0)
+print(big.area())  // 200.0
+print(big.is_larger_than(r))  // true`} />
+
+### Public and Private Methods
+
+Like fields, methods can be marked `pub` for public access. Methods without `pub` are private to the type.
+
+<CodeBlock language="jitzu" code={`type BankAccount {
+    pub owner: String,
+    balance: Double
+
+    // Private method — only callable from other methods on this type
+    fun validate_amount(self, amount: Double): Result<Double, String> {
+        if amount <= 0.0 {
+            Err("Amount must be positive")
+        } else {
+            Ok(amount)
+        }
+    }
+
+    // Public methods
+    pub fun get_balance(self): Double {
+        self.balance
+    }
+
+    pub fun deposit(self, amount: Double): Result<Double, String> {
+        let valid = try self.validate_amount(amount)
+        self.balance = self.balance + valid
+        Ok(self.balance)
+    }
+}`} />
+
+## Traits
+
+Traits define a set of method signatures that a type must implement. They describe shared behavior without providing the implementation.
+
+<CodeBlock language="jitzu" code={`trait Describable {
+    fun describe(self): String
+}
+
+trait Resizable {
+    fun scale(self, factor: Double): Self
+}`} />
+
+### Implementing Traits
+
+Use `impl TraitName for TypeName` to implement a trait on a type:
+
+<CodeBlock language="jitzu" code={`type Person {
+    pub name: String,
+    pub age: Int
+}
+
+trait Greet {
+    fun greeting(self): String
+}
+
+impl Greet for Person {
+    fun greeting(self): String {
+        \`Hello, I'm {self.name}\`
+    }
+}`} />
+
+> **Note:** Trait declarations and `impl` blocks are currently parsed but trait methods are not yet registered at runtime. For now, define methods directly inside the `type` block instead. Full trait dispatch is planned for a future release.
+
+### Current Workaround
+
+Until `impl` blocks are fully wired up, put methods inside the type definition:
+
+<CodeBlock language="jitzu" code={`// ✓ This works today
+type Person {
+    pub name: String,
+    pub age: Int
+
+    fun greeting(self): String {
+        \`Hello, I'm {self.name}\`
+    }
+}
+
+let p = Person { name = "Alice", age = 30 }
+print(p.greeting())  // "Hello, I'm Alice"`} />
+
+## Naming Convention
+
+All methods use **snake_case** — both inline type methods and trait methods:
+
+<CodeBlock language="jitzu" code={`type User {
+    pub name: String
+
+    // ✓ snake_case for methods
+    fun get_display_name(self): String {
+        self.name.ToUpper()
+    }
+}
+
+// .NET methods keep their original PascalCase
+// self.name.ToUpper() — this is a .NET call, not a Jitzu method`} />
+
+## Common Errors
+
+### Method not found on type
+
+<CodeBlock language="jitzu" code={`type Dog { pub name: String }
+let d = Dog { name = "Rex" }
+d.bark()
+// Error: Cannot find function 'bark' on 'Dog'
+
+// Fix: define the method inside the type block
+type Dog {
+    pub name: String
+
+    fun bark(self): String { \`{self.name} says woof!\` }
+}`} />
+
+### Missing self parameter
+
+<CodeBlock language="jitzu" code={`type Counter {
+    pub value: Int
+
+    // This is a static-style method, not an instance method
+    fun create(): Counter {
+        Counter { value = 0 }
+    }
+
+    // Instance methods must take self
+    fun increment(self): Int {
+        self.value + 1
+    }
+}`} />
+
+### Type name must start with uppercase
+
+<CodeBlock language="jitzu" code={`type person { pub name: String }
+// Error: Type names must start with an uppercase letter
+
+// Fix: use PascalCase
+type Person { pub name: String }`} />
+
+Methods let you attach behavior to your types, keeping data and logic together. Next, explore [Pattern Matching](/docs/language/pattern-matching) to learn about union types and match expressions.

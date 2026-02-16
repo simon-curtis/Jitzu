@@ -1,0 +1,27 @@
+---
+title: "Privilege Escalation"
+description: "Running commands with elevated privileges in the Jitzu shell."
+section: "Shell"
+order: 6
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Privilege Escalation
+
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>sudo command</code></td><td>Run a command with elevated privileges</td></tr>
+    <tr><td><code>sudo -s</code></td><td>Open an elevated shell (replaces current session)</td></tr>
+    <tr><td><code>sudo -i</code></td><td>Open an elevated login shell (resets to home directory)</td></tr>
+  </tbody>
+</table>
+
+On Windows, `sudo` launches an elevated Jitzu shell process and attaches
+it to the current console. The prompt shows `[sudo]` and uses `#` instead of `>` when elevated.

@@ -1,0 +1,163 @@
+---
+title: "Customization"
+description: "The Jitzu shell supports theme customization, startup configuration, aliases, and path labels to personalize your workflow."
+section: "Shell"
+order: 5
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Customization
+
+The Jitzu shell supports theme customization, startup configuration, aliases, and path labels
+to personalize your workflow.
+
+## Theme Configuration
+
+Colors are controlled by `~/.jitzu/colours.json`.
+A default configuration is written automatically on first launch. All values are hex color strings (e.g. `#87af87`).
+
+<CodeBlock language="json" code={`{
+  "syntax": {
+    "command": "#87af87",
+    "keyword": "#87afd7",
+    "string": "#afaf87",
+    "flag": "#87afaf",
+    "pipe": "#af87af",
+    "boolean": "#d7af87"
+  },
+  "git": {
+    "branch": "#808080",
+    "dirty": "#d7af87",
+    "staged": "#87af87",
+    "untracked": "#808080",
+    "remote": "#87afaf"
+  },
+  "prompt": {
+    "directory": "#87d7ff",
+    "arrow": "#5faf5f",
+    "error": "#d75f5f",
+    "user": "#5f8787",
+    "duration": "#d7af87",
+    "time": "#808080",
+    "jobs": "#87afaf"
+  },
+  "ls": {
+    "directory": "#87afd7",
+    "executable": "#87af87",
+    "archive": "#d75f5f",
+    "media": "#af87af",
+    "code": "#87afaf",
+    "config": "#d7af87",
+    "project": "#d7af87",
+    "size": "#87af87",
+    "dim": "#808080"
+  },
+  "error": "#d75f5f",
+  "prediction": {
+    "text": "#808080",
+    "selected": {
+      "bg": "#303050",
+      "fg": "#ffffff"
+    }
+  },
+  "selection": {
+    "bg": "#264f78",
+    "fg": "#ffffff"
+  },
+  "dropdown": {
+    "gutter": "#404040",
+    "status": "#5f87af"
+  }
+}`} />
+
+### Color Categories
+
+- **syntax** — live input highlighting (commands, keywords, strings, flags, pipes, booleans)
+- **git** — prompt git status indicators (branch, dirty, staged, untracked, remote ahead/behind)
+- **prompt** — prompt elements (directory, arrow, error state, user, duration, clock, job count)
+- **ls** — file listing colors by type (directories, executables, archives, media, code, config, project files)
+- **prediction** — history prediction ghost text and dropdown selection
+- **selection** — text selection highlight
+- **dropdown** — completion dropdown gutter and status bar
+
+Edit any value and restart the shell to apply changes. Malformed entries are silently
+ignored and fall back to defaults.
+
+## Startup Configuration
+
+The file `~/.jitzu/config.jz` is executed automatically when the shell starts,
+similar to `.bashrc` or `.zshrc`.
+Each line is run as a shell command, so you can set aliases, labels, environment variables,
+and define Jitzu functions that will be available in every session.
+
+<CodeBlock language="jitzu" code={`// ~/.jitzu/config.jz
+
+// Set up aliases
+alias ll="ls -la"
+alias gs="git status"
+alias gp="git push"
+
+// Set up path labels
+label git ~/git
+label docs ~/Documents
+
+// Set environment variables
+export EDITOR=nvim
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+// Define helper functions
+fun greet(): String {
+    \`Good morning, {whoami}!\`
+}`} />
+
+Lines starting with `//` are treated as comments and skipped.
+
+## Aliases
+
+Aliases map short names to longer commands. They persist to disk across sessions
+and are automatically expanded when the alias name appears as the first word of a command.
+
+<CodeBlock language="shell" code={`> alias ll="ls -la"
+Alias set: ll → ls -la
+
+> ll
+d-----       -  Jan 15 09:44  src/
+-a-r--   2.5K  Jan 15 14:23  Program.cs
+
+> aliases
+ll → ls -la
+gs → git status
+
+> unalias ll
+Alias removed: ll`} />
+
+Aliases are stored in the application data directory
+(e.g. `~/.local/share/Jitzu/aliases.txt` on Linux
+or `%APPDATA%/Jitzu/aliases.txt` on Windows).
+
+## Path Labels
+
+Labels map short names to directory paths. Use a label by appending a colon, e.g. `git:`.
+Labels work in `cd`, file arguments, and tab completion.
+
+<CodeBlock language="shell" code={`> label api ~/projects/api
+Label set: api → /home/simon/projects/api
+
+> cd api:
+> pwd
+/home/simon/projects/api
+
+> cd api:src/controllers
+> cat api:README.md
+
+> labels
+api → /home/simon/projects/api
+docs → /home/simon/Documents
+
+> unlabel api
+Label removed: api`} />
+
+Labels expand transparently in file arguments, so commands
+like `cat api:src/Program.cs` and `ls api:` work
+as expected. Tab completion also understands label prefixes.

@@ -1,0 +1,373 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import Terminal from '@/components/Terminal.astro';
+import Marquee from '@/components/Marquee.astro';
+import CodeBlock from '@/components/CodeBlock.astro';
+import Particles from '@/components/Particles.astro';
+import { highlightJitzu } from '@/lib/jitzu-tokenizer';
+
+const BUILTINS = [
+  "ls", "cd", "pwd", "cat", "grep", "find", "mkdir", "rm", "cp", "mv",
+  "echo", "touch", "head", "tail", "sort", "uniq", "wc", "cut", "diff",
+  "alias", "unalias", "label", "unlabel", "history", "clear", "exit",
+  "env", "set", "export", "which", "whoami", "hostname", "uptime",
+  "ps", "kill", "jobs", "fg", "bg", "sudo", "chmod", "open", "tee",
+  "more", "less", "tree", "du", "df", "date", "time", "sleep", "seq",
+  "yes", "true", "false", "test", "help", "version", "monitor",
+];
+
+import { theme } from '@/lib/theme';
+
+const t = {
+  user: theme.user,
+  dir: theme.dir,
+  arrow: theme.arrow,
+  branch: theme.branch,
+  dirty: theme.dirty,
+  kw: theme.keyword,
+  str: theme.string,
+  cmd: theme.command,
+  flag: theme.flag,
+  dim: theme.dim,
+  text: theme.text,
+};
+
+const HERO_SESSION = [
+  [{ text: "simon", color: t.user }, { text: " " }, { text: "~/projects/api", color: t.dir }, { text: " (main)", color: t.branch }, { text: " *", color: t.dirty }],
+  [{ text: "> ", color: t.arrow, bold: true }, { text: "find", color: t.cmd }, { text: " src " }, { text: "-ext", color: t.flag }, { text: " cs" }],
+  [{ text: "src/Parser.cs", color: t.text }],
+  [{ text: "src/Lexer.cs", color: t.text }],
+  [{ text: "src/Interpreter.cs", color: t.text }],
+  [],
+  [{ text: "> ", color: t.arrow, bold: true }, { text: "git log", color: t.text }, { text: " --oneline", color: t.flag }, { text: " | ", color: t.dim }, { text: "first", color: t.cmd }],
+  [{ text: "a1b2c3d Add pattern matching support", color: t.text }],
+  [],
+  [{ text: "> ", color: t.arrow, bold: true }, { text: "let", color: t.kw }, { text: " msg = " }, { text: '"hello, world"', color: t.str }],
+  [{ text: "> ", color: t.arrow, bold: true }, { text: "msg.ToUpper()", color: t.text }],
+  [{ text: '"HELLO, WORLD"', color: t.str }],
+  [],
+  [{ text: "> ", color: t.arrow, bold: true }, { text: "alias", color: t.cmd }, { text: " ll=" }, { text: '"ls -la"', color: t.str }],
+  [{ text: "Alias set: ll → ls -la", color: t.dim }],
+];
+
+const comparisons = [
+  { them: "Get-ChildItem -Recurse -Filter *.cs", us: "find -ext cs", lang: "PowerShell" },
+  { them: "$obj | Select-Object -ExpandProperty Name", us: "obj.name", lang: "PowerShell" },
+  { them: "try { } catch [System.Exception] { $_ }", us: "let val = risky()?", lang: "PowerShell" },
+  { them: "result=$(cmd) && echo $result", us: "let result = cmd(); print(result)", lang: "Bash" },
+  { them: "everything is a string", us: "Int, String, Bool, Result<T, E>, Option<T>", lang: "Bash" },
+];
+
+const features = [
+  {
+    title: "Pattern matching",
+    desc: "Match on types, destructure fields, guard with conditions.",
+    code: `let result = match GetUser() {
+    Ok(user) => \`Hello, {user.name}!\`,
+    Err(e) => \`Failed: {e}\`,
+}`,
+  },
+  {
+    title: "Result<T, E> and the ? operator",
+    desc: "Propagate errors without try/catch. Compose fallible operations.",
+    code: `fun load_config(): Result<Config, Error> {
+    let file = try read_file("config.json")
+    let parsed = try parse_json(file)
+    return Ok(parsed)
+}`,
+  },
+  {
+    title: "Traits and impl blocks",
+    desc: "Define shared behavior, implement it on any type.",
+    code: `trait Greet {
+    fun greeting(self): String
+}
+
+impl Greet for User {
+    fun greeting(self): String {
+        \`Hey, {self.name}!\`
+    }
+}`,
+  },
+  {
+    title: "Types with type inference",
+    desc: "Define types with pub fields. Types are inferred from context.",
+    code: `type Point {
+    pub x: Double,
+    pub y: Double,
+}
+
+let origin = Point { x = 0.0, y = 0.0 }
+let dist = (origin.x ** 2 + origin.y ** 2) ** 0.5`,
+  },
+  {
+    title: "NuGet packages",
+    desc: "Import any .NET package with a single line.",
+    code: `#:package Newtonsoft.Json@13.0.4
+open "Newtonsoft.Json" as { JsonConvert }
+
+let json = JsonConvert.SerializeObject(user)
+print(json)`,
+  },
+];
+---
+
+<BaseLayout>
+  <div class="flex flex-col min-h-screen bg-background">
+    <Header />
+
+    <main class="flex-1">
+      {/* ═══ HERO ═══ */}
+      <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+        {/* Background gradient */}
+        <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 80% 50% at 50% 40%, color-mix(in srgb, var(--pastel-blue) 8%, transparent), transparent)"></div>
+
+        {/* Particles */}
+        <Particles count={150} />
+
+        <div class="relative z-10 text-center px-4">
+          <h1 class="text-[18vw] md:text-[15vw] lg:text-[12vw] font-black tracking-[-0.06em] leading-none text-gradient-animated select-none py-2 reveal">
+            Jitzu
+          </h1>
+
+          <p class="text-lg md:text-2xl text-muted-foreground/70 mt-6 font-light tracking-wide reveal" style="animation-delay:0.2s">
+            An interactive shell and a typed scripting language.
+          </p>
+
+          <div class="flex items-center justify-center gap-6 md:gap-10 mt-8 reveal" style="animation-delay:0.4s">
+            {[
+              { label: "Runtime", value: ".NET 10" },
+              { label: "Packages", value: "Any NuGet library" },
+              { label: "Platforms", value: "Win · Mac · Linux" },
+              { label: "License", value: "Open source" },
+            ].map((item) => (
+              <div class="flex flex-col items-center">
+                <span class="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/50 mb-0.5">{item.label}</span>
+                <span class="text-xs md:text-sm font-medium text-muted-foreground/70">{item.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div class="mt-10 flex gap-4 justify-center reveal" style="animation-delay:0.6s">
+            <a href="/docs/getting-started/installation" class="inline-flex items-center gap-2 px-6 py-3 text-sm text-muted-foreground/70 hover:text-foreground transition-colors">
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 17l6 4V7l-6-4v14zM20 17l-6 4V7l6-4v14z"/><rect x="8" y="2" width="8" height="20" rx="1" stroke="currentColor" fill="none"/></svg>
+              Install
+            </a>
+            <a href="/docs/getting-started/installation" class="inline-flex items-center gap-2 px-6 py-3 text-sm text-muted-foreground/70 hover:text-foreground transition-colors">
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+              Docs
+            </a>
+            <a href="https://github.com/simon-curtis/jitzu" class="inline-flex items-center gap-2 px-6 py-3 text-sm text-muted-foreground/70 hover:text-foreground transition-colors">
+              <svg class="size-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              GitHub
+            </a>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div class="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 reveal" style="animation-delay:1s">
+          <span class="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/30">Scroll</span>
+          <svg class="size-4 text-muted-foreground/20 float" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </section>
+
+      {/* ═══ COMPARISONS ═══ */}
+      <section class="relative py-24 overflow-hidden border-y border-white/[0.03]">
+        <div class="container mx-auto px-4 md:px-6 relative z-10">
+          <div class="max-w-3xl mx-auto text-center mb-16 reveal">
+            <h2 class="text-3xl md:text-5xl font-black tracking-[-0.04em] mb-4">
+              Same task. Less noise.
+            </h2>
+          </div>
+
+          <div class="max-w-3xl mx-auto space-y-3">
+            {comparisons.map((row, i) => (
+              <div class="grid md:grid-cols-2 rounded-xl overflow-hidden border border-white/[0.04] text-sm font-mono reveal" style={`animation-delay:${i * 0.05}s`}>
+                <div class="px-5 py-4 bg-white/[0.01] border-b md:border-b-0 md:border-r border-white/[0.04]">
+                  <span class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50 block mb-2">{row.lang}</span>
+                  <code class="text-muted-foreground/70">{row.them}</code>
+                </div>
+                <div class="px-5 py-4">
+                  <span class="text-[10px] uppercase tracking-[0.2em] text-[var(--pastel-blue)]/40 block mb-2">Jitzu</span>
+                  <code class="text-foreground/90">{row.us}</code>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ MARQUEE ═══ */}
+      <section class="relative py-20 overflow-hidden">
+        <p class="text-center text-sm text-muted-foreground/70 uppercase tracking-[0.25em] mb-8 reveal">
+          60+ built-in commands
+        </p>
+
+        <Marquee speed={60} class="opacity-[0.15]">
+          <div class="flex gap-8">
+            {BUILTINS.map((cmd) => (
+              <span class="text-2xl md:text-4xl font-mono font-bold tracking-tight whitespace-nowrap text-foreground">{cmd}</span>
+            ))}
+          </div>
+        </Marquee>
+
+        <Marquee speed={45} reverse class="mt-4 opacity-[0.08]">
+          <div class="flex gap-8">
+            {[...BUILTINS].reverse().map((cmd) => (
+              <span class="text-lg md:text-2xl font-mono tracking-tight whitespace-nowrap text-foreground">{cmd}</span>
+            ))}
+          </div>
+        </Marquee>
+      </section>
+
+      {/* ═══ THE TERMINAL ═══ */}
+      <section id="shell" class="relative py-32 md:py-44 overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none" style="background:radial-gradient(circle, color-mix(in srgb, var(--pastel-blue) 6%, transparent), transparent 70%);filter:blur(80px)"></div>
+
+        <div class="container mx-auto px-4 md:px-6 relative z-10">
+          <div class="max-w-3xl mx-auto text-center mb-16 reveal">
+            <span class="inline-block text-xs uppercase tracking-[0.3em] text-[var(--pastel-blue)]/70 mb-6">The Shell</span>
+            <h2 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-[-0.04em] leading-[0.95]">
+              Everything you need at the prompt.
+            </h2>
+          </div>
+
+          {/* Three pillar cards */}
+          <div class="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-16">
+            <div class="glass rounded-2xl p-6 reveal" style="animation-delay:0.1s">
+              <div class="w-8 h-8 mb-4 flex items-center justify-center rounded-lg" style="background:color-mix(in srgb, var(--pastel-blue) 15%, transparent)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pastel-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+              </div>
+              <h3 class="text-sm font-semibold text-foreground/90 mb-2">Tab Completion</h3>
+              <p class="text-sm text-muted-foreground/70 leading-relaxed">Files, commands, variables, and types — all completable with Tab.</p>
+            </div>
+            <div class="glass rounded-2xl p-6 reveal" style="animation-delay:0.18s">
+              <div class="w-8 h-8 mb-4 flex items-center justify-center rounded-lg" style="background:color-mix(in srgb, var(--pastel-teal) 15%, transparent)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pastel-teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+              <h3 class="text-sm font-semibold text-foreground/90 mb-2">Typed Pipes</h3>
+              <p class="text-sm text-muted-foreground/70 leading-relaxed">Pipe OS command output into Jitzu functions. Types flow through the pipeline.</p>
+            </div>
+            <div class="glass rounded-2xl p-6 reveal" style="animation-delay:0.26s">
+              <div class="w-8 h-8 mb-4 flex items-center justify-center rounded-lg" style="background:color-mix(in srgb, var(--pastel-lavender) 15%, transparent)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pastel-lavender)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </div>
+              <h3 class="text-sm font-semibold text-foreground/90 mb-2">History & Search</h3>
+              <p class="text-sm text-muted-foreground/70 leading-relaxed">Ctrl+R reverse search, arrow-key predictions, and a git-aware prompt.</p>
+            </div>
+          </div>
+
+          <div class="max-w-4xl mx-auto reveal" style="animation-delay:0.3s">
+            <Terminal lines={HERO_SESSION} class="shadow-2xl shadow-black/50" />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ LABELS ═══ */}
+      <section class="relative py-24 md:py-32 overflow-hidden border-y border-white/[0.03]">
+        <div class="container mx-auto px-4 md:px-6 relative z-10">
+          <div class="grid lg:grid-cols-2 gap-12 max-w-5xl mx-auto items-center">
+            <div class="reveal">
+              <span class="inline-block text-xs uppercase tracking-[0.3em] text-[var(--pastel-amber)]/70 mb-4">Directory Labels</span>
+              <h2 class="text-3xl md:text-5xl font-black tracking-[-0.04em] leading-[0.95] mb-6">
+                Name your directories.<br />
+                <span class="text-muted-foreground/30">Use them everywhere.</span>
+              </h2>
+              <p class="text-muted-foreground/80 text-lg leading-relaxed mb-6">
+                No symlinks. No drive mapping. No editing fstab. Just give a directory a name and use it as a path prefix — in cd, ls, cat, anywhere.
+              </p>
+              <div class="space-y-3 text-sm text-muted-foreground/50">
+                <div class="flex items-start gap-3">
+                  <div class="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style="background:var(--pastel-amber)"></div>
+                  <span>Works as a path prefix: <code class="text-foreground/70">cd git:jitzu/site</code></span>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div class="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style="background:var(--pastel-amber)"></div>
+                  <span>Tab completes label names and paths after the colon</span>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div class="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style="background:var(--pastel-amber)"></div>
+                  <span>Saved to your config — available in every session</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="reveal" style="animation-delay:0.15s">
+              <CodeBlock language="jitzu" code={`// Label a directory
+label git ~/git/
+
+// Now use it anywhere
+cd git:jitzu/site
+ls git:jitzu/Tests/
+cat git:jitzu/README.md
+
+// List all your labels
+labels
+// git: → /home/simon/git/
+// proj: → /home/simon/projects/
+
+// Remove one
+unlabel proj`} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ THE LANGUAGE ═══ */}
+      <section id="language" class="relative py-32 md:py-44 overflow-hidden">
+        <div class="container mx-auto px-4 md:px-6 relative z-10">
+          <div class="max-w-3xl mx-auto text-center mb-20 reveal">
+            <span class="inline-block text-xs uppercase tracking-[0.3em] text-[var(--pastel-lavender)]/70 mb-6">The Language</span>
+            <h2 class="text-4xl md:text-6xl lg:text-7xl font-black tracking-[-0.04em] leading-[0.9] mb-8">
+              Oh, it's also<br />
+              <span class="text-gradient-accent">a full language.</span>
+            </h2>
+            <p class="text-muted-foreground/60 text-lg md:text-xl leading-relaxed max-w-xl mx-auto">
+              Rust's enums. C#'s runtime. TypeScript's ergonomics. Compiled to bytecode, running on .NET's VM.
+            </p>
+          </div>
+
+          <div class="max-w-4xl mx-auto space-y-6">
+            {features.map((feature, i) => (
+              <div class="grid md:grid-cols-2 gap-6 items-start reveal" style={`animation-delay:${i * 0.08}s`}>
+                <div class="pt-2">
+                  <h3 class="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
+                  <p class="text-sm text-muted-foreground/60 leading-relaxed">{feature.desc}</p>
+                </div>
+                <CodeBlock language="jitzu" code={feature.code} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ CTA ═══ */}
+      <section class="relative py-32 md:py-44 flex items-center justify-center overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] pointer-events-none" style="background:radial-gradient(ellipse, color-mix(in srgb, var(--pastel-lavender) 5%, transparent), transparent 70%);filter:blur(60px)"></div>
+
+        <div class="relative z-10 text-center">
+          <div class="flex items-center justify-center gap-1 mb-12 reveal" style="font-family:JetBrains Mono,Consolas,Monaco,'Andale Mono',monospace;font-size:1.1rem">
+            <span style={`color:${t.arrow};font-weight:bold`}>> </span>
+            <span class="cursor-blink" style="color:var(--pastel-blue)">▌</span>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-4 justify-center items-center reveal" style="animation-delay:0.2s">
+            <a href="/docs/getting-started/installation" class="inline-flex items-center gap-2 px-8 h-12 rounded-lg bg-[var(--pastel-blue)] hover:bg-[var(--pastel-blue)]/90 text-background font-medium text-sm transition-colors">
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 17l6 4V7l-6-4v14zM20 17l-6 4V7l6-4v14z"/><rect x="8" y="2" width="8" height="20" rx="1" stroke="currentColor" fill="none"/></svg>
+              Get Started
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a href="https://github.com/simon-curtis/jitzu" class="inline-flex items-center gap-2 px-8 h-12 rounded-lg glass-hover text-muted-foreground/70 hover:text-foreground text-sm transition-colors">
+              <svg class="size-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              View on GitHub
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <Footer />
+  </div>
+</BaseLayout>

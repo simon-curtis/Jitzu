@@ -1,0 +1,139 @@
+---
+title: "Activity Monitor"
+description: "The Jitzu shell includes a built-in full-screen activity monitor TUI, background job management, command timing, and process control commands."
+section: "Shell"
+order: 6
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Activity Monitor
+
+The Jitzu shell includes a built-in full-screen activity monitor TUI, background job management,
+command timing, and process control commands.
+
+## The Monitor Command
+
+Run `monitor` to open a live-updating full-screen dashboard showing:
+
+- **CPU usage** — overall percentage with per-core sparkline bars and gradient coloring (green through red)
+- **Memory usage** — used/total with sparkline graph
+- **Network** — send/receive rates with sparkline history
+- **Disk usage** — per-drive gauge bars
+- **Process list** — navigable tree view with PID, CPU%, memory, and command name
+
+### Monitor Controls
+
+<table>
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>q / Escape</code></td><td>Quit the monitor</td></tr>
+    <tr><td><code>Up / Down</code></td><td>Navigate process list</td></tr>
+    <tr><td><code>k</code></td><td>Send SIGTERM to selected process</td></tr>
+    <tr><td><code>kk</code> (double tap)</td><td>Send SIGKILL to selected process</td></tr>
+    <tr><td><code>/</code></td><td>Filter processes by name</td></tr>
+    <tr><td><code>f</code></td><td>Toggle: show only shell child processes</td></tr>
+  </tbody>
+</table>
+
+The monitor renders with bordered panels, gradient sparklines, and color-coded metrics.
+It refreshes automatically and adapts to terminal size changes.
+
+## Background Jobs
+
+Append `&` to any command to run it in the background.
+The shell returns a job ID and process ID immediately, and the prompt stays responsive.
+
+<CodeBlock language="shell" code={`> dotnet build &
+[1] 12345
+
+> sleep 10 &
+[2] 12346`} />
+
+### Managing Jobs
+
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>jobs</code></td><td>List all background jobs with status (Running/Done)</td></tr>
+    <tr><td><code>fg [%id]</code></td><td>Bring a job to the foreground (waits for completion, shows output)</td></tr>
+    <tr><td><code>bg</code></td><td>List background jobs (alias for jobs)</td></tr>
+  </tbody>
+</table>
+
+<CodeBlock language="shell" code={`> jobs
+[1]  Running    dotnet build
+[2]  Done       sleep 10
+
+> fg %1
+[1]  dotnet build
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)`} />
+
+Completed jobs are reported automatically at the next prompt. The prompt also shows the count of
+active background jobs (e.g. `[2]`).
+
+## Command Timing
+
+Use `time` to measure how long a command takes to execute:
+
+<CodeBlock language="shell" code={`> time dotnet build
+Build succeeded.
+
+real    0m2.345s`} />
+
+Commands that take longer than 2 seconds also show their duration in the prompt
+line automatically (e.g. `took 5s`).
+
+## Watch
+
+The `watch` command repeats a command at regular intervals.
+Press `Ctrl+C` to stop.
+
+<CodeBlock language="shell" code={`> watch -n 5 date
+Every 5.0s: date
+
+Sat Feb 14 14:23:00 2026`} />
+
+Default interval is 2 seconds. Use `-n` to specify a different interval.
+
+## Process Management
+
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>kill [-9] pid</code></td><td>Kill a process by PID or <code>%jobid</code></td></tr>
+    <tr><td><code>killall [-9] name</code></td><td>Kill all processes matching a name</td></tr>
+  </tbody>
+</table>
+
+<CodeBlock language="shell" code={`> kill %1
+[1]  Terminated  dotnet build
+
+> kill 12345
+Process 12345 terminated.
+
+> kill -9 12345
+Process 12345 killed.
+
+> killall node
+Killed 3 process(es) named 'node'.`} />
+
+The `-9` flag sends SIGKILL (force kill) instead of SIGTERM (graceful termination).
+Use `%id` to reference background jobs by their job ID.

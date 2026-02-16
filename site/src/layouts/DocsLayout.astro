@@ -1,0 +1,73 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Sidebar from '@/components/Sidebar.astro';
+import Footer from '@/components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+
+// Build breadcrumbs from URL
+const segments = Astro.url.pathname.split('/').filter(Boolean);
+const breadcrumbs = segments.map((seg, i) => ({
+  label: seg.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+  href: '/' + segments.slice(0, i + 1).join('/'),
+  isLast: i === segments.length - 1,
+}));
+---
+
+<BaseLayout title={title} description={description}>
+  {/* Mobile sidebar toggle checkbox must be before sidebar */}
+  <input type="checkbox" id="sidebar-toggle" class="hidden" />
+
+  <Sidebar />
+
+  <div class="lg:ml-[280px] min-h-screen flex flex-col">
+    {/* Top bar */}
+    <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-white/[0.04] bg-background/80 backdrop-blur-md px-4">
+      {/* Mobile menu button */}
+      <label for="sidebar-toggle" class="lg:hidden cursor-pointer p-2 -ml-2 text-muted-foreground hover:text-foreground">
+        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18" />
+        </svg>
+      </label>
+
+      {/* Breadcrumbs */}
+      <nav class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        {breadcrumbs.map((crumb, i) => (
+          <>
+            {i > 0 && <span class="text-muted-foreground/30">/</span>}
+            {crumb.isLast ? (
+              <span class="text-foreground font-medium">{crumb.label}</span>
+            ) : (
+              <a href={crumb.href} class="hover:text-foreground transition-colors">{crumb.label}</a>
+            )}
+          </>
+        ))}
+      </nav>
+    </header>
+
+    {/* Content */}
+    <main class="flex-1 py-12">
+      <div class="container mx-auto px-4 md:px-6 max-w-4xl">
+        <slot />
+      </div>
+    </main>
+
+    <Footer />
+  </div>
+
+  <script is:inline>
+    document.querySelectorAll('.prose-custom h1[id], .prose-custom h2[id], .prose-custom h3[id]').forEach(heading => {
+      const link = document.createElement('a');
+      link.href = '#' + heading.id;
+      link.className = 'anchor-link';
+      link.setAttribute('aria-hidden', 'true');
+      link.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
+      heading.prepend(link);
+    });
+  </script>
+</BaseLayout>

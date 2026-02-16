@@ -1,0 +1,91 @@
+---
+/**
+ * Dynamically fetches the latest GitHub release and renders download buttons.
+ * Buttons are disabled until the API resolves, then link directly to asset downloads.
+ */
+
+const REPO = 'simon-curtis/jitzu';
+
+const platforms = [
+  { key: 'win-x64',    label: 'Windows x64',        icon: 'windows' },
+  { key: 'osx-arm64',  label: 'macOS Apple Silicon', icon: 'apple' },
+  { key: 'osx-x64',    label: 'macOS Intel',         icon: 'apple' },
+  { key: 'linux-x64',  label: 'Linux x64',           icon: 'linux' },
+];
+---
+
+<div class="download-buttons not-prose" data-repo={REPO}>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    {platforms.map((p) => (
+      <a
+        data-platform={p.key}
+        class="dl-btn group flex flex-col items-center gap-2 px-4 py-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all text-center opacity-50 pointer-events-none"
+      >
+        {p.icon === 'windows' && (
+          <svg class="size-9 text-muted-foreground/50 group-hover:text-[#0078d4] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+          </svg>
+        )}
+        {p.icon === 'apple' && (
+          <svg class="size-9 text-muted-foreground/50 group-hover:text-foreground/80 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+        )}
+        {p.icon === 'linux' && (
+          <svg class="size-9 text-muted-foreground/50 group-hover:text-[#f5a623] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+        )}
+        <span class="text-xs font-medium text-muted-foreground/70 group-hover:text-foreground/90 transition-colors">{p.label}</span>
+      </a>
+    ))}
+  </div>
+  <p class="text-center text-xs text-muted-foreground/40 mt-3 dl-version">
+    <span class="text-muted-foreground/30">Loading latest release...</span>
+  </p>
+</div>
+
+<script>
+  const container = document.querySelector('.download-buttons') as HTMLElement;
+  if (container) {
+    const repo = container.dataset.repo!;
+    const releasesUrl = `https://github.com/${repo}/releases`;
+
+    fetch(`https://api.github.com/repos/${repo}/releases/latest`)
+      .then((res) => {
+        if (!res.ok) throw new Error('No release');
+        return res.json();
+      })
+      .then((release) => {
+        const assets: { name: string; browser_download_url: string }[] = release.assets || [];
+        const tag = release.tag_name;
+
+        container.querySelectorAll<HTMLAnchorElement>('a[data-platform]').forEach((btn) => {
+          const key = btn.dataset.platform!;
+          const asset = assets.find((a) => a.name.includes(key));
+          if (asset) {
+            btn.href = asset.browser_download_url;
+            btn.classList.remove('opacity-50', 'pointer-events-none');
+          }
+        });
+
+        const versionEl = container.querySelector('.dl-version');
+        if (versionEl) {
+          versionEl.innerHTML = `<a href="${releasesUrl}/tag/${tag}" class="hover:text-muted-foreground/60 transition-colors">${tag} &middot; Browse all releases</a>`;
+        }
+      })
+      .catch(() => {
+        // On failure, enable buttons as links to releases page
+        container.querySelectorAll<HTMLAnchorElement>('a[data-platform]').forEach((btn) => {
+          btn.href = releasesUrl;
+          btn.classList.remove('opacity-50', 'pointer-events-none');
+        });
+
+        const versionEl = container.querySelector('.dl-version');
+        if (versionEl) {
+          versionEl.innerHTML = `<a href="${releasesUrl}" class="hover:text-muted-foreground/60 transition-colors">Browse all releases</a>`;
+        }
+      });
+  }
+</script>

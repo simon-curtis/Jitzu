@@ -1,0 +1,201 @@
+---
+title: Functions
+description: Functions are the building blocks of Jitzu programs. They support type annotations, automatic return of the last expression, recursion, and Result-based error handling.
+section: Language
+order: 8
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Functions
+
+Functions are the building blocks of Jitzu programs. They support type annotations,
+automatic return of the last expression, recursion, and Result-based error handling.
+
+## Function Definition
+
+### Basic Function Syntax
+
+<CodeBlock language="jitzu" code={`// Basic function with explicit return type
+fun add(a: Int, b: Int): Int {
+    a + b
+}
+
+// Function with string return
+fun greet(name: String): String {
+    \`Hello, {name}!\`
+}
+
+// Function with no parameters
+fun get_pi(): Double {
+    3.14159
+}
+
+// Using functions
+print(add(5, 3))        // 8
+print(greet("World"))   // "Hello, World!"
+print(get_pi())         // 3.14159`} />
+
+### Everything is an Expression
+
+Functions automatically return the value of their last expression - no `return` keyword needed:
+
+<CodeBlock language="jitzu" code={`fun calculate_area(radius: Double): Double {
+    let pi = 3.14159
+    pi * radius * radius  // This value is automatically returned
+}
+
+// You can use explicit return for early exits
+fun classify(n: Int): String {
+    if n < 0 {
+        return "negative"
+    }
+    if n == 0 {
+        return "zero"
+    }
+    "positive"
+}`} />
+
+### Function Parameters
+
+<CodeBlock language="jitzu" code={`// Required parameters with types
+fun format_name(first: String, last: String): String {
+    \`{first} {last}\`
+}
+
+// Parameters are typed
+fun distance(x1: Double, y1: Double, x2: Double, y2: Double): Double {
+    let dx = x2 - x1
+    let dy = y2 - y1
+    (dx * dx + dy * dy)
+}`} />
+
+## Recursive Functions
+
+Jitzu supports recursive functions:
+
+<CodeBlock language="jitzu" code={`// Classic recursive factorial
+fun factorial(n: Int): Int {
+    if n <= 1 {
+        1
+    } else {
+        n * factorial(n - 1)
+    }
+}
+
+// Power function
+fun power(base: Int, exp: Int): Int {
+    if exp == 0 {
+        1
+    } else {
+        base * power(base, exp - 1)
+    }
+}
+
+// Fibonacci
+fun fibonacci(n: Int): Int {
+    if n <= 1 {
+        n
+    } else {
+        fibonacci(n - 1) + fibonacci(n - 2)
+    }
+}
+
+print(factorial(5))     // 120
+print(power(2, 8))      // 256
+print(fibonacci(10))    // 55`} />
+
+## Error Handling with Result Types
+
+### Returning Results
+
+Use `Result<T, E>` for functions that can fail:
+
+<CodeBlock language="jitzu" code={`fun divide(a: Double, b: Double): Result<Double, String> {
+    if b == 0.0 {
+        Err("Division by zero")
+    } else {
+        Ok(a / b)
+    }
+}
+
+// Pattern matching on Results
+match divide(10.0, 2.0) {
+    Ok(result) => print(\`Result: {result}\`),
+    Err(error) => print(\`Error: {error}\`)
+}`} />
+
+### The Try Operator
+
+Use `try` to propagate errors early:
+
+<CodeBlock language="jitzu" code={`fun safe_sqrt(x: Double): Result<Double, String> {
+    if x < 0.0 {
+        Err("Cannot take square root of negative number")
+    } else {
+        Ok(x)
+    }
+}
+
+// try returns Err early if the operation fails
+fun complex_calculation(a: Double, b: Double): Result<Double, String> {
+    let step1 = try divide(a, b)
+    let step2 = try safe_sqrt(step1)
+    Ok(step2)
+}
+
+match complex_calculation(100.0, 4.0) {
+    Ok(value) => print(\`Result: {value}\`),
+    Err(error) => print(\`Failed: {error}\`)
+}`} />
+
+## Best Practices
+
+- **Single responsibility** - Each function should do one thing well
+- **Descriptive names** - Use clear, meaningful function names
+- **Small functions** - Keep functions focused and concise
+- Prefer `Result<T, E>` for recoverable errors
+- Use early returns with guard clauses to reduce nesting
+
+<CodeBlock language="jitzu" code={`// Good: Early returns reduce nesting
+fun validate_and_process(input: String): Result<String, String> {
+    if input == "" {
+        return Err("Input cannot be empty")
+    }
+
+    // Happy path - main logic
+    Ok(input)
+}`} />
+
+## Common Errors
+
+### Wrong argument types
+
+<CodeBlock language="jitzu" code={`fun add(a: Int, b: Int): Int { a + b }
+
+add("hello", 2)
+// Error: Cannot find function 'add' on '' with argument types: String, Int
+
+// Fix: pass the correct types
+add(1, 2)`} />
+
+### Calling a method that doesn't exist
+
+<CodeBlock language="jitzu" code={`let name = "Alice"
+name.Foo()
+// Error: Cannot find function 'Foo' on 'String'
+
+// Fix: use a real String method
+name.ToUpper()`} />
+
+### Mismatched Result types
+
+<CodeBlock language="jitzu" code={`fun check(x: Int): Result<String, String> {
+    if x > 0 { Ok("positive") } else { 42 }
+    // Error: Couldn't resolve match to a single return type
+
+    // Fix: both branches must return the same type
+    if x > 0 { Ok("positive") } else { Err("not positive") }
+}`} />
+
+Functions are the building blocks of Jitzu programs. Next, explore [Control Flow](/docs/language/control-flow) to learn about conditionals and loops.

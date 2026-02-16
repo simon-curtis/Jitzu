@@ -1,0 +1,77 @@
+---
+title: Overview
+description: What Jitzu is and why it exists
+section: Getting Started
+order: 0
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# What is Jitzu?
+
+Jitzu is two things in one: an **interactive shell** you use as your terminal, and a **typed scripting language** you write real programs in. Both share the same runtime, the same type system, and the same package ecosystem.
+
+## The Shell
+
+Jitzu ships with `jzsh`, a shell that replaces bash, zsh, or PowerShell for daily use. It has the commands you expect — `ls`, `cd`, `cat`, `grep` — plus features built for modern workflows:
+
+- **Tab completion** for files, commands, variables, and types
+- **Typed pipes** that flow OS command output into Jitzu functions
+- **Ctrl+R reverse search**, arrow-key history predictions, and a git-aware prompt
+- **Directory labels** — name a directory once, use it as a path prefix everywhere
+
+<CodeBlock language="shell" code={`simon ~/projects/api (main) *
+> find src -ext cs
+src/Parser.cs
+src/Lexer.cs
+src/Interpreter.cs
+
+> git log --oneline | first
+a1b2c3d Add pattern matching support
+
+> label git ~/git/
+> cd git:jitzu/site`} />
+
+## The Language
+
+At the prompt or in `.jz` files, you write in a language that borrows from Rust, C#, F#, and TypeScript. It's expression-based, statically typed with inference, and has pattern matching, union types, and string interpolation built in.
+
+<CodeBlock language="jitzu" code={`// Variables — immutable by default
+let name = "Jitzu"
+let mut counter = 0
+
+// Functions return their last expression
+fun greet(who: String): String {
+    \`Hello, {who}!\`
+}
+
+// Union types and pattern matching
+union Shape {
+    Circle(Double),
+    Square(Double),
+}
+
+let area = match shape {
+    Shape.Circle(r) => 3.14159 * r ** 2,
+    Shape.Square(s) => s ** 2,
+}`} />
+
+## NuGet Packages
+
+Any .NET NuGet package works out of the box. Add a directive, import what you need, and use it — no project files, no restore step.
+
+<CodeBlock language="jitzu" code={`#:package Newtonsoft.Json@13.0.4
+open "Newtonsoft.Json" as { JsonConvert }
+
+let json = JsonConvert.SerializeObject(user)
+print(json)`} />
+
+## Runtime
+
+Jitzu compiles your code to bytecode and runs it on a stack-based VM built on .NET 10. It's fast enough for scripting and interactive use, and gives you access to the entire .NET ecosystem.
+
+## Next Steps
+
+- [Installation](/docs/getting-started/installation) — download and set up Jitzu
+- [Shell Overview](/docs/shell/overview) — learn the shell commands and features
+- [Language Basics](/docs/language/basic-syntax) — start writing Jitzu code

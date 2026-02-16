@@ -1,0 +1,63 @@
+---
+title: Dates
+description: Working with Date, Time, and Timestamp types in Jitzu for parsing, comparing, and combining temporal values.
+section: Language
+order: 7
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Dates
+
+Jitzu has three temporal types: `Date` for calendar dates, `Time` for times of day, and `Timestamp` for a combined date and time.
+
+## Date
+
+<CodeBlock language="jitzu" code={`// Parse a date from a string
+let date = try Date.parse("2024-01-15")
+print(date)  // 2024-01-15
+
+// Compare dates
+let start = try Date.parse("2024-01-01")
+let end = try Date.parse("2024-12-31")
+print(start == end)   // false
+print(start < end)    // true`} />
+
+## Time
+
+<CodeBlock language="jitzu" code={`// Parse a time from a string
+let time = try Time.parse("14:30:00")
+print(time)  // 14:30:00
+
+// Compare times
+let morning = try Time.parse("08:00:00")
+let evening = try Time.parse("20:00:00")
+print(morning < evening)  // true`} />
+
+## Timestamp (Date + Time)
+
+Combine a `Date` and `Time` to create a `Timestamp`, or parse one directly:
+
+<CodeBlock language="jitzu" code={`// Combine date and time
+let date = try Date.parse("2024-01-15")
+let time = try Time.parse("12:00:00")
+let timestamp = date + time
+print(timestamp)  // 2024-01-15 12:00:00
+
+// Parse a timestamp directly
+let ts = try Timestamp.parse("2024-01-15 12:00:00")
+
+// They compare equal
+print(timestamp == ts)  // true`} />
+
+## Error Handling
+
+Parsing returns a `Result`, so invalid input is handled safely:
+
+<CodeBlock language="jitzu" code={`let result = Date.parse("not-a-date")
+match result {
+    Ok(d) => print(d),
+    Err(e) => print(\`Parse error: {e}\`),
+}`} />
+
+Dates round out Jitzu's built-in types. Next, explore [Functions](/docs/language/functions) to learn how to define and use functions.

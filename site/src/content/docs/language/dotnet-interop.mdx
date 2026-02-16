@@ -1,0 +1,160 @@
+---
+title: ".NET Interop"
+description: "Jitzu runs on .NET — call any .NET method, access properties, and install NuGet packages directly in your scripts."
+section: "Language"
+order: 13
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# .NET Interop
+
+Jitzu compiles to bytecode and runs on .NET 10. This means you can call any .NET method, access properties, create instances of .NET types, and install NuGet packages — all from Jitzu code.
+
+## Built-in .NET Types
+
+These types are available without any imports:
+
+| Jitzu name | .NET type | Example |
+|------------|-----------|---------|
+| `Int` | `System.Int32` | `Int.Parse("42")` |
+| `Double` | `System.Double` | `Double.Parse("3.14")` |
+| `String` | `System.String` | `"hello".ToUpper()` |
+| `Bool` | `System.Boolean` | `true` |
+| `Char` | `System.Char` | `'a'` |
+| `Date` | `System.DateOnly` | `Date.parse("2024-01-01")` |
+| `Time` | `System.TimeOnly` | `Time.parse("12:00:00")` |
+| `DateTime` | `System.DateTime` | `DateTime.Now` |
+| `File` | `System.IO.File` | `File.Exists("config.json")` |
+| `Path` | `System.IO.Path` | `Path.GetFileName("src/main.jz")` |
+
+## Calling Instance Methods
+
+Call .NET methods on any value using their original PascalCase names:
+
+<CodeBlock language="jitzu" code={`let msg = "Hello, World!"
+
+// String instance methods
+print(msg.ToUpper())          // "HELLO, WORLD!"
+print(msg.ToLower())          // "hello, world!"
+print(msg.Trim())             // "Hello, World!"
+print(msg.Contains("World"))  // true
+print(msg.StartsWith("He"))   // true
+print(msg.Replace("World", "Jitzu"))  // "Hello, Jitzu!"
+print(msg.Substring(0, 5))    // "Hello"
+print(msg.Split(","))         // ["Hello", " World!"]
+print(msg.IndexOf("World"))   // 7`} />
+
+## Accessing Properties
+
+Access .NET properties with dot notation — just like fields:
+
+<CodeBlock language="jitzu" code={`let msg = "Hello"
+print(msg.Length)  // 5
+
+let items = [1, 2, 3]
+print(items.Count) // 3`} />
+
+## Calling Static Methods
+
+Call static methods on a type name:
+
+<CodeBlock language="jitzu" code={`// Parsing
+let n = try Int.Parse("42")
+let pi = try Double.Parse("3.14159")
+
+// File operations
+let exists = File.Exists("config.json")
+let ext = Path.GetExtension("script.jz")     // ".jz"
+let name = Path.GetFileName("src/Parser.cs")  // "Parser.cs"
+let dir = Path.GetDirectoryName("/home/user/file.txt")`} />
+
+## NuGet Packages
+
+Any public NuGet package works in Jitzu. Add a `#:package` directive at the top of your script — no project files, no restore step.
+
+<CodeBlock language="jitzu" code={`#:package Newtonsoft.Json@13.0.4
+
+let user = { name = "Alice", age = 30 }
+let json = JsonConvert.SerializeObject(user)
+print(json)  // {"name":"Alice","age":30}`} />
+
+### Specifying Versions
+
+The version follows the package name after `@`:
+
+<CodeBlock language="jitzu" code={`#:package Serilog@4.3.1
+#:package Serilog.Sinks.Console@6.1.1
+
+let logger_config = LoggerConfiguration { }
+Log.Logger = logger_config.WriteTo.Console().CreateLogger()
+
+Log.Information("Hello from Serilog!")
+Log.CloseAndFlush()`} />
+
+Packages are downloaded to `~/.nuget/packages` and cached for future runs. Dependencies are resolved automatically.
+
+### Creating .NET Instances
+
+Construct .NET types with the object initializer syntax:
+
+<CodeBlock language="jitzu" code={`#:package Serilog@4.3.1
+
+// Parameterless constructor + property assignment
+let config = LoggerConfiguration { }`} />
+
+## Method Name Conversion
+
+Jitzu functions use snake_case, but .NET methods use PascalCase. When calling .NET methods, use PascalCase — these are CLR calls, not Jitzu functions:
+
+<CodeBlock language="jitzu" code={`// ✓ .NET methods — PascalCase (their original names)
+let upper = name.ToUpper()
+let parts = line.Split(",")
+let n = Int.Parse("42")
+
+// ✗ Don't use snake_case for .NET methods
+// name.to_upper()   — won't find the method
+// Int.parse("42")   — won't find the method`} />
+
+## Namespace Resolution
+
+Types from NuGet packages are registered with their full .NET namespace. If a type name is unique across all loaded packages, you can use just the short name:
+
+<CodeBlock language="jitzu" code={`#:package Newtonsoft.Json@13.0.4
+
+// Short name works when unambiguous
+let json = JsonConvert.SerializeObject(data)`} />
+
+If two packages export the same type name, Jitzu tells you:
+
+<CodeBlock language="jitzu" code={`// Error: Type 'JsonSerializer' is ambiguous. Did you mean:
+//   - System.Text.Json.JsonSerializer
+//   - Newtonsoft.Json.JsonSerializer
+
+// Fix: use the fully qualified name
+let s = System.Text.Json.JsonSerializer {}`} />
+
+## Common Errors
+
+### Method not found
+
+<CodeBlock language="jitzu" code={`let name = "Alice"
+name.Foo()
+// Error: Cannot find function 'Foo' on 'String'
+
+// Fix: check the method name and casing
+name.ToUpper()`} />
+
+### Wrong argument types
+
+<CodeBlock language="jitzu" code={`Int.Parse(42)
+// Error: Cannot find function 'Parse' on 'Int' with argument types: Int
+
+// Fix: Parse expects a String
+Int.Parse("42")`} />
+
+### Package not found
+
+If a `#:package` directive specifies a version that doesn't exist, the script will fail at startup before any code runs. Double-check the package name and version on [nuget.org](https://www.nuget.org).
+
+Next, explore the [Code Style](/docs/language/code-style) guide for naming conventions.

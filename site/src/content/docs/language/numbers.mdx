@@ -1,0 +1,95 @@
+---
+title: Numbers
+description: Integer and floating-point number types, arithmetic, parsing, and conversions in Jitzu.
+section: Language
+order: 4
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Numbers
+
+Jitzu has two number types: `Int` for whole numbers and `Double` for floating-point values.
+
+## Integers
+
+<CodeBlock language="jitzu" code={`let x = 20
+let y = 10
+let negative = -42
+
+// Basic arithmetic
+print(x + y)   // 30
+print(x - y)   // 10
+print(x * y)   // 200
+print(x / y)   // 2
+print(x % y)   // 0 (modulus)
+
+// Combined expressions follow standard precedence
+print(x + y * 2)   // 40 (multiplication first)
+print((x + y) * 2) // 60 (parentheses override)`} />
+
+### Compound Assignment
+
+<CodeBlock language="jitzu" code={`let mut count = 0
+count += 1   // count = 1
+count -= 1   // count = 0
+count += 10  // count = 10
+count *= 2   // count = 20
+count /= 4   // count = 5`} />
+
+## Floating-Point Numbers
+
+<CodeBlock language="jitzu" code={`// Double precision by default
+let pi = 3.14159
+let radius = 5.0
+let area = pi * radius * radius
+
+// Scientific notation
+let large = 1.23e6   // 1,230,000
+let small = 4.56e-3  // 0.00456`} />
+
+## Integer vs Double Division
+
+<CodeBlock language="jitzu" code={`// Integer division truncates
+print(7 / 2)     // 3
+
+// Use a Double operand for decimal results
+print(7.0 / 2.0) // 3.5`} />
+
+## Parsing Numbers from Strings
+
+Use `.Parse()` on the .NET types to convert strings to numbers. These return a `Result` so you can handle invalid input safely.
+
+<CodeBlock language="jitzu" code={`// Parse integers
+let parsed_int = try Int.Parse("42")
+print(parsed_int)  // 42
+
+// Parse doubles
+let parsed_double = try Double.Parse("3.14")
+print(parsed_double)  // 3.14
+
+// Parsing can fail
+let result = Int.Parse("not a number")
+match result {
+    Ok(n) => print(n),
+    Err(e) => print(\`Failed: {e}\`),
+}`} />
+
+## Comparisons
+
+<CodeBlock language="jitzu" code={`let a = 10
+let b = 20
+
+print(a == b)  // false
+print(a != b)  // true
+print(a < b)   // true
+print(a <= b)  // true
+print(a > b)   // false
+print(a >= b)  // false`} />
+
+## Exponentiation
+
+<CodeBlock language="jitzu" code={`let squared = 5 ** 2    // 25
+let cubed = 2 ** 10     // 1024`} />
+
+Numbers are one of Jitzu's primitive types. Next, explore [Strings](/docs/language/strings) for text handling.

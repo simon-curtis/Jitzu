@@ -515,7 +515,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
     private void HandleTabCompletion(ConsoleKeyInfo key)
     {
-        // Tab 2: Accept current completion and close dropdown
+        // Accept current completion and close dropdown
         if (_dropdownIsCompletions && _dropdownItems.Count > 0)
         {
             ApplyCompletionAtIndex(_dropdownIndex);
@@ -525,8 +525,20 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             return;
         }
 
-        // Tab 1: Open completion suggestions dropdown
-        // Dismiss any history predictions/ghost text
+        // Accept selected history prediction
+        if (!_dropdownIsCompletions && _dropdownIndex >= 0 && _ghostText != null)
+        {
+            _buffer.AddRange(_ghostText);
+            _cursorPos = _buffer.Count;
+            _ghostText = null;
+            DismissDropdown();
+            UpdatePredictions();
+            RedrawLine();
+            return;
+        }
+
+        // Open completion suggestions dropdown
+        // Dismiss any history predictions
         DismissDropdown();
 
         if (_completions == null || _completions.Length == 0)
@@ -779,16 +791,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         _predictions = history.GetPredictions(text, MaxPredictions);
         _dropdownIndex = -1;
 
-        // Set ghost text from top prediction
-        if (_predictions.Count > 0 && text.Length > 0)
-        {
-            var topPrediction = _predictions[0];
-            _ghostText = topPrediction.Length > text.Length ? topPrediction[text.Length..] : null;
-        }
-        else
-        {
-            _ghostText = null;
-        }
+        _ghostText = null;
 
         // Populate dropdown with predictions
         _dropdownItems = _predictions;

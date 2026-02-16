@@ -1,0 +1,172 @@
+---
+title: "Pipes & Redirection"
+description: "The Jitzu shell supports Unix-style pipes and I/O redirection, plus a unique hybrid pipe system that lets you chain OS command output into Jitzu functions."
+section: "Shell"
+order: 3
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Pipes & Redirection
+
+The Jitzu shell supports Unix-style pipes and I/O redirection, plus a unique hybrid pipe
+system that lets you chain OS command output into Jitzu functions.
+
+## Unix Pipes
+
+Use `|` to pass the output of one command as input to another.
+When both sides are OS commands, the shell delegates to the system pipe:
+
+<CodeBlock language="shell" code={`> git log --oneline | head -5
+a1b2c3d Add pattern matching
+b2c3d4e Fix lexer edge case
+c3d4e5f Refactor parser
+d4e5f6a Add shell mode
+e5f6a7b Initial commit`} />
+
+## Hybrid Pipes
+
+You can pipe OS command output into Jitzu pipe functions. The shell captures
+stdout from the left side and passes it as text to the Jitzu function on the right:
+
+<CodeBlock language="shell" code={`> git log --oneline | first
+a1b2c3d Add pattern matching
+
+> ls | grep("cs")
+Parser.cs
+Lexer.cs
+Interpreter.cs
+
+> git log --oneline | nth(2)
+c3d4e5f Refactor parser`} />
+
+### Available Pipe Functions
+
+<table>
+  <thead>
+    <tr>
+      <th>Function</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>first</code></td><td>First line of output</td></tr>
+    <tr><td><code>last</code></td><td>Last line of output</td></tr>
+    <tr><td><code>nth(n)</code></td><td>Nth line (0-indexed)</td></tr>
+    <tr><td><code>grep("pattern")</code></td><td>Filter lines containing pattern</td></tr>
+    <tr><td><code>head -n N</code></td><td>First N lines (default 10)</td></tr>
+    <tr><td><code>tail -n N</code></td><td>Last N lines (default 10)</td></tr>
+    <tr><td><code>sort [-r]</code></td><td>Sort lines alphabetically</td></tr>
+    <tr><td><code>uniq</code></td><td>Remove consecutive duplicate lines</td></tr>
+    <tr><td><code>wc [-l/-w/-c]</code></td><td>Count lines/words/chars</td></tr>
+    <tr><td><code>tee [-a] file</code></td><td>Write to file and pass through</td></tr>
+    <tr><td><code>more / less</code></td><td>View output in pager</td></tr>
+    <tr><td><code>print</code></td><td>Print and pass through</td></tr>
+  </tbody>
+</table>
+
+Pipe functions accept both Jitzu-style and shell-style argument syntax:
+
+<CodeBlock language="shell" code={`> ls | grep("test")      // Jitzu-style parentheses
+> ls | grep "test"       // shell-style spaces`} />
+
+### Chaining Pipe Functions
+
+Pipe functions can be chained together:
+
+<CodeBlock language="shell" code={`> git log --oneline | grep("fix") | sort
+a1b2c3d Fix login timeout
+c3d4e5f Fix parser edge case
+
+> ls *.cs | sort | tee filelist.txt`} />
+
+## Builtin Pipes
+
+Built-in commands can also be piped. Their output is captured and fed into the right side:
+
+<CodeBlock language="shell" code={`> diff file1.txt file2.txt | more
+> cat server.log | grep("ERROR")
+> find src -ext cs | sort`} />
+
+## Output Redirection
+
+Redirect command output to a file with `>` (overwrite) or `>>` (append).
+ANSI color codes are automatically stripped from redirected output.
+
+<CodeBlock language="shell" code={`> echo "hello world" > greeting.txt
+> echo "another line" >> greeting.txt
+
+> ls *.cs > filelist.txt
+
+> grep -rn "TODO" src/ > todos.txt`} />
+
+## Input Redirection
+
+Use `<` to feed a file's contents as stdin to a command:
+
+<CodeBlock language="shell" code={`> sort < names.txt
+Alice
+Bob
+Charlie`} />
+
+## Tee
+
+The `tee` command writes its input to a file and also passes it through
+to stdout, so you can save intermediate results in a pipeline:
+
+<CodeBlock language="shell" code={`> ls | tee filelist.txt
+src/
+tests/
+Program.cs
+
+> git log --oneline | tee -a log.txt | first
+a1b2c3d Add pattern matching`} />
+
+Use `-a` to append instead of overwriting.
+
+## Command Chaining
+
+Chain multiple commands together with logical operators:
+
+<table>
+  <thead>
+    <tr>
+      <th>Operator</th>
+      <th>Behavior</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>&&</code></td><td>Run next command only if the previous succeeded</td></tr>
+    <tr><td><code>||</code></td><td>Run next command only if the previous failed</td></tr>
+    <tr><td><code>;</code></td><td>Run next command unconditionally</td></tr>
+  </tbody>
+</table>
+
+<CodeBlock language="shell" code={`> mkdir build && cd build
+> echo hello > file.txt && cat file.txt
+hello
+
+> cd nonexistent || echo "directory not found"
+directory not found
+
+> echo step1 ; echo step2 ; echo step3
+step1
+step2
+step3`} />
+
+## Background Execution
+
+Append `&` to run a command in the background. See the [Activity Monitor](/docs/shell/activity-monitor) page for more on background job management.
+
+<CodeBlock language="shell" code={`> dotnet build &
+[1] 12345
+
+> jobs
+[1]  Running    dotnet build`} />
+
+## Call Operator
+
+The `&` prefix (PowerShell-style call operator) forces a line to
+be treated as an OS command instead of Jitzu code:
+
+<CodeBlock language="shell" code={`> & dotnet build`} />

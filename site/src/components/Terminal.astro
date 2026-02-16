@@ -1,0 +1,57 @@
+---
+import { theme } from '@/lib/theme';
+
+interface Span {
+  text: string;
+  color?: string;
+  bold?: boolean;
+  dim?: boolean;
+}
+
+interface Props {
+  lines: Span[][];
+  title?: string;
+  class?: string;
+}
+
+const { lines, title = 'jitzu', class: className = '' } = Astro.props;
+---
+
+<div class={`relative ${className}`}>
+  <div class="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-[#08080d]">
+    {/* Terminal chrome */}
+    <div class="flex items-center gap-2 px-5 py-3 bg-white/[0.02] border-b border-white/[0.06]">
+      <div class="flex items-center gap-1.5">
+        <div class="w-3 h-3 rounded-full bg-[#ff5f57]/80"></div>
+        <div class="w-3 h-3 rounded-full bg-[#febc2e]/80"></div>
+        <div class="w-3 h-3 rounded-full bg-[#28c840]/80"></div>
+      </div>
+      <span class="text-xs text-muted-foreground/60 ml-3 font-medium tracking-wide">{title}</span>
+    </div>
+
+    {/* Terminal content */}
+    <div
+      class="p-6 overflow-auto"
+      style={`font-family:JetBrains Mono,Consolas,Monaco,'Andale Mono',monospace;font-size:0.8rem;line-height:1.7;color:${theme.text}`}
+    >
+      {lines.map((line, i) => (
+        <div class="reveal" style={`animation-delay:${i * 0.05}s`}>
+          {line.length === 0 ? (
+            <div class="h-3"></div>
+          ) : (
+            <div class="whitespace-pre">
+              {line.map((span) => (
+                <span style={`color:${span.color || theme.text};${span.bold ? 'font-weight:bold;' : ''}${span.dim ? 'opacity:0.5;' : ''}`}>{span.text}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      {/* Blinking cursor */}
+      <div class="flex items-center gap-0">
+        <span style={`color:${theme.arrow};font-weight:bold`}>> </span>
+        <span class="cursor-blink" style="color:var(--pastel-blue)">▌</span>
+      </div>
+    </div>
+  </div>
+</div>

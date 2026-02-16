@@ -1,0 +1,29 @@
+---
+title: "System Information"
+description: "Built-in system information commands in the Jitzu shell."
+section: "Shell"
+order: 3
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# System Information
+
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>whoami</code></td><td>Print current user name</td></tr>
+    <tr><td><code>hostname</code></td><td>Print machine name</td></tr>
+    <tr><td><code>uptime</code></td><td>Show system uptime</td></tr>
+    <tr><td><code>env</code></td><td>List all environment variables</td></tr>
+    <tr><td><code>export VAR=value</code></td><td>Set an environment variable</td></tr>
+    <tr><td><code>unset VAR</code></td><td>Remove an environment variable</td></tr>
+    <tr><td><code>where command</code></td><td>Locate all sources (alias, label, builtin, PATH)</td></tr>
+    <tr><td><code>date [+format]</code></td><td>Print current date/time (<code>-u</code> UTC, <code>-I</code> ISO)</td></tr>
+  </tbody>
+</table>

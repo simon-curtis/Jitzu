@@ -1,0 +1,131 @@
+---
+title: Strings
+description: String literals, interpolation, escape sequences, and common operations in Jitzu.
+section: Language
+order: 5
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Strings
+
+Strings in Jitzu are UTF-8 text. You can create them with double quotes or backtick template literals.
+
+## String Literals
+
+<CodeBlock language="jitzu" code={`let greeting = "Hello, world!"
+print(greeting)`} />
+
+### Escape Sequences
+
+<CodeBlock language="jitzu" code={`print("Hello\\nWorld")   // newline
+print("Hello\\tWorld")   // tab
+print("She said \\"hi\\"") // escaped quotes
+print("Path: C:\\\\Users") // backslash`} />
+
+## String Interpolation
+
+Backtick strings support `{expression}` interpolation. Any expression works inside the braces.
+
+<CodeBlock language="jitzu" code={`let name = "Simon"
+let age = 30
+
+// Variable interpolation
+print(\`Hello, {name}!\`)           // "Hello, Simon!"
+
+// Expression interpolation
+print(\`Next year: {age + 1}\`)     // "Next year: 31"
+print(\`1 + 1 = {1 + 1}\`)          // "1 + 1 = 2"
+
+// Nested field access
+let user = { name = "Alice", score = 95 }
+print(\`{user.name} scored {user.score}\`)`} />
+
+## Concatenation
+
+<CodeBlock language="jitzu" code={`let first = "Hello"
+let second = " World"
+let combined = first + second
+print(combined)  // "Hello World"
+
+// You can also concatenate numbers with strings
+let count = 5
+print(count + " items")  // "5 items"`} />
+
+## String Comparison
+
+Comparisons are case-sensitive:
+
+<CodeBlock language="jitzu" code={`let a = "Alice"
+let b = "alice"
+print(a == b)   // false
+print(a != b)   // true`} />
+
+## .NET String Methods
+
+Since Jitzu runs on .NET, you can call any `System.String` method directly using PascalCase:
+
+<CodeBlock language="jitzu" code={`let text = "  Hello, World!  "
+
+// Case conversion
+print(text.ToUpper())        // "  HELLO, WORLD!  "
+print(text.ToLower())        // "  hello, world!  "
+
+// Trimming whitespace
+print(text.Trim())           // "Hello, World!"
+print(text.TrimStart())      // "Hello, World!  "
+print(text.TrimEnd())        // "  Hello, World!"
+
+// Searching
+let msg = "Hello, World!"
+print(msg.Contains("World")) // true
+print(msg.StartsWith("He"))  // true
+print(msg.EndsWith("!"))     // true
+print(msg.IndexOf("World"))  // 7
+
+// Splitting and joining
+let csv = "one,two,three"
+let parts = csv.Split(",")   // ["one", "two", "three"]
+
+// Replacing
+let replaced = msg.Replace("World", "Jitzu")
+print(replaced)              // "Hello, Jitzu!"
+
+// Substring
+print(msg.Substring(0, 5))   // "Hello"
+
+// Length
+print(msg.Length)             // 13`} />
+
+## Multi-line Strings
+
+<CodeBlock language="jitzu" code={`let poem = "Roses are red,\\nViolets are blue,\\nJitzu is fun,\\nAnd so are you."
+print(poem)`} />
+
+## Common Errors
+
+### Unterminated string
+
+<CodeBlock language="jitzu" code={`let msg = "hello
+// Error: String terminated abnormally
+
+// Fix: close the string on the same line
+let msg = "hello"`} />
+
+### Invalid escape sequence
+
+<CodeBlock language="jitzu" code={`let ch = '\\x'
+// Error: Invalid escape character sequence
+
+// Valid escapes: \\n, \\t, \\\\, \\", \\'`} />
+
+### Invalid interpolation expression
+
+<CodeBlock language="jitzu" code={`let msg = \`value: {}\`
+// Error: Not expecting this in an interpolated string
+
+// Fix: put an expression inside the braces
+let x = 42
+let msg = \`value: {x}\``} />
+
+Strings are one of Jitzu's most-used types. Next, explore [Vectors](/docs/language/vectors) for working with collections.

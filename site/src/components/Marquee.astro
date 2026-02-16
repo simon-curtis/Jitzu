@@ -1,0 +1,17 @@
+---
+interface Props {
+  speed?: number;
+  reverse?: boolean;
+  class?: string;
+}
+
+const { speed = 40, reverse = false, class: className = '' } = Astro.props;
+---
+
+<div class={`overflow-hidden ${className}`} style={`--marquee-duration:${speed}s;--marquee-direction:${reverse ? 'reverse' : 'normal'}`}>
+  <div class="flex w-max gap-8 hover:[animation-play-state:paused]" style="animation:marquee var(--marquee-duration) linear infinite var(--marquee-direction)">
+    <slot />
+    {/* Duplicate for seamless loop */}
+    <slot />
+  </div>
+</div>

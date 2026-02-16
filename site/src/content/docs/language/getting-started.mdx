@@ -1,0 +1,144 @@
+---
+title: Getting Started with Jitzu
+description: Welcome to Jitzu, a modern scripting language designed to be "Fast Enough™, Overengineered, and Unoriginal" - packed with syntax sugar to make scripting fun and expressive.
+section: Language
+order: 1
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Getting Started with Jitzu
+
+Welcome to Jitzu, a modern scripting language designed to be "Fast Enough™, Overengineered, and Unoriginal" - packed with syntax sugar to make scripting fun and expressive.
+
+## What is Jitzu?
+
+Jitzu is a modern scripting language that combines features from Rust, C#, F#, Go, TypeScript, Scala, and Zig.
+It's designed for both script execution and interactive shell usage, prioritizing developer productivity and expressiveness.
+
+## Design Philosophy
+
+Jitzu is designed to be:
+
+- **Fast Enough™** - Optimized for developer productivity over raw performance
+- **Overengineered** - Includes many language features for expressiveness
+- **Unoriginal** - Borrows the best ideas from other languages
+- **Fun to use** - Syntax sugar makes common tasks enjoyable
+
+## Your First Jitzu Program
+
+Let's start with the classic "Hello, World!" program:
+
+<CodeBlock language="jitzu" code={`// Simple Hello World
+print("Hello, World!")`} />
+
+Save this as `hello.jz` and run it with the Jitzu interpreter.
+
+## String Interpolation
+
+One of Jitzu's most convenient features is string interpolation using template literals:
+
+<CodeBlock language="jitzu" code={`// With string interpolation
+let name = "Jitzu"
+print(\`Hello from {name}!\`)
+
+// You can use expressions inside interpolation
+let version = 1.0
+print(\`Welcome to {name} version {version}!\`)`} />
+
+## Basic Program Structure
+
+Jitzu programs are collections of expressions and statements:
+
+<CodeBlock language="jitzu" code={`// Variables
+let greeting = "Hello"
+let language = "Jitzu"
+
+// Function definition
+fun welcome(name: String): String {
+    \`{greeting} from {language}, {name}!\`
+}
+
+// Using the function
+let message = welcome("Developer")
+print(message)`} />
+
+## Key Language Features at a Glance
+
+### Mutable and Immutable Variables
+
+Use `mut` for mutable data:
+
+<CodeBlock language="jitzu" code={`let x = 42          // Immutable
+let mut counter = 0 // Mutable
+counter += 1`} />
+
+### Everything is an Expression
+
+Functions automatically return the last expression:
+
+<CodeBlock language="jitzu" code={`fun add(a: Int, b: Int): Int {
+    a + b  // No 'return' needed
+}`} />
+
+### Strong Type System with Inference
+
+Types are inferred when possible, but you can be explicit:
+
+<CodeBlock language="jitzu" code={`let age = 25              // Inferred as Int
+let name: String = "Alice" // Explicit type`} />
+
+### Pattern Matching
+
+Match expressions for control flow:
+
+<CodeBlock language="jitzu" code={`union Shape {
+    Circle(Double),
+    Square(Double),
+}
+
+let description = match shape {
+    Shape.Circle(r) => \`Circle with radius {r}\`,
+    Shape.Square(s) => \`Square with side {s}\`,
+}`} />
+
+## Quick Reference
+
+### Common Operations
+
+<CodeBlock language="jitzu" code={`// Variables
+let x = 42
+let mut y = 10
+
+// String interpolation
+print(\`x = {x}, y = {y}\`)
+
+// Basic arithmetic
+let sum = x + y
+let difference = x - y
+
+// Conditionals
+if x > y {
+    print("x is greater")
+}
+
+// Loops
+for i in 1..=5 {
+    print(\`Count: {i}\`)
+}`} />
+
+### File Structure
+
+- Source files use `.jz` extension
+- Use `open` statements for imports
+- Programs start executing from top-level expressions
+
+## Next Steps
+
+Now that you've seen the basics, explore these areas to learn more:
+
+- [Basic Syntax](/docs/language/basic-syntax) - Comments, variables, and imports
+- [Data Types](/docs/language/data-types) - Numbers, strings, vectors, and more
+- [Functions](/docs/language/functions) - Function definition and error handling
+- [Control Flow](/docs/language/control-flow) - Conditionals and loops
+- [Types](/docs/language/object-oriented) - Custom types and composition

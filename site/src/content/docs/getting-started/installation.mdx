@@ -1,0 +1,76 @@
+---
+title: Installation
+description: How to install Jitzu on your system
+section: Getting Started
+order: 1
+---
+import CodeBlock from '@/components/CodeBlock.astro';
+import DownloadButtons from '@/components/DownloadButtons.astro';
+
+# Installation
+
+Jitzu is distributed as two standalone binaries — `jzsh` (the shell) and `jz` (the script interpreter). Each works independently: you can use the shell without the interpreter, and vice versa. Download the self-contained build for your platform — it bundles the .NET runtime, so it works on any machine with no prerequisites.
+
+<DownloadButtons />
+
+## Self-Contained Binary
+
+The self-contained binary bundles the .NET runtime, so it works on any machine with no
+prerequisites. This is the easiest way to get started.
+
+### Windows
+
+Download `jitzu-win-x64.zip` from the [latest GitHub release](https://github.com/simon-curtis/jitzu/releases/latest) and extract it. Add the extracted directory to your PATH, or move the binary to a directory already on your PATH.
+
+<CodeBlock language="bash" code={`# PowerShell
+Expand-Archive jitzu-win-x64.zip -DestinationPath C:\\tools\\jitzu
+$env:PATH += ";C:\\tools\\jitzu"
+
+# Or move to a directory already on PATH
+Move-Item jz.exe, jzsh.exe C:\\Windows\\`} />
+
+### macOS
+
+Download `jitzu-osx-arm64.tar.gz` (Apple Silicon) or `jitzu-osx-x64.tar.gz` (Intel) from the [latest release](https://github.com/simon-curtis/jitzu/releases/latest).
+
+<CodeBlock language="bash" code={`tar xzf jitzu-osx-arm64.tar.gz
+sudo mv jz jzsh /usr/local/bin/
+chmod +x /usr/local/bin/jz /usr/local/bin/jzsh`} />
+
+### Linux
+
+Download `jitzu-linux-x64.tar.gz` from the [latest release](https://github.com/simon-curtis/jitzu/releases/latest).
+
+<CodeBlock language="bash" code={`tar xzf jitzu-linux-x64.tar.gz
+sudo mv jz jzsh /usr/local/bin/
+chmod +x /usr/local/bin/jz /usr/local/bin/jzsh`} />
+
+## Build from Source
+
+Jitzu requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) to build from source.
+
+<CodeBlock language="bash" code={`git clone https://github.com/simon-curtis/jitzu.git
+cd jitzu
+dotnet build
+dotnet run --project Jitzu.Interpreter -- --help
+dotnet run --project Jitzu.Shell`} />
+
+## Verify Installation
+
+Check the interpreter is on your PATH:
+
+<CodeBlock language="bash" code={`jz --version
+# jz v0.3.0`} />
+
+Then launch the shell:
+
+<CodeBlock language="shell" code={`jzsh v0.3.0
+
+• runtime    : 10.0.0
+• config     : ~/.jitzu/config.jz
+• platform   : Unix
+
+Type \`help\` to get started.
+
+> 1 + 1
+2`} />

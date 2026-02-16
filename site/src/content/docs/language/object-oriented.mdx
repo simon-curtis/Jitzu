@@ -1,0 +1,166 @@
+---
+title: Types
+description: Jitzu lets you define custom types to group related data together. Types support public and private fields, nesting, and composition.
+section: Language
+order: 10
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Types
+
+Jitzu lets you define custom types to group related data together.
+Types support public and private fields, nesting, and composition.
+
+## Type Definitions
+
+### Basic Types
+
+Define custom types to group related data:
+
+<CodeBlock language="jitzu" code={`// Basic type definition
+type Person {
+    pub name: String,
+    pub age: Int
+}
+
+// Creating instances
+let john = Person {
+    name = "John Doe",
+    age = 30
+}
+
+// Accessing fields
+print(john.name)  // "John Doe"
+print(john.age)   // 30`} />
+
+### Nested Types
+
+Types can contain other types for complex data structures:
+
+<CodeBlock language="jitzu" code={`// Nested type definitions
+type PersonName {
+    pub first: String,
+    pub last: String
+}
+
+type Address {
+    pub street: String,
+    pub city: String,
+    pub zip_code: String
+}
+
+type Employee {
+    pub name: PersonName,
+    pub id: Int,
+    pub department: String,
+    pub address: Address
+}
+
+// Creating nested instances
+let employee = Employee {
+    name = PersonName {
+        first = "Alice",
+        last = "Johnson"
+    },
+    id = 12345,
+    department = "Engineering",
+    address = Address {
+        street = "123 Main St",
+        city = "Tech City",
+        zip_code = "12345"
+    }
+}
+
+// Accessing nested fields
+print(\`Employee: {employee.name.first} {employee.name.last}\`)
+print(\`Works in: {employee.department}\`)`} />
+
+### Private and Public Fields
+
+Control field visibility with `pub`. Fields without `pub` are private:
+
+<CodeBlock language="jitzu" code={`type BankAccount {
+    pub account_number: String,
+    pub owner: String,
+    balance: Double,  // Private field
+    pin: String       // Private field
+}`} />
+
+## Composition
+
+Jitzu favors composition - build complex types by combining simpler ones:
+
+<CodeBlock language="jitzu" code={`// Base components
+type Engine {
+    pub horsepower: Int,
+    pub fuel_type: String
+}
+
+type Transmission {
+    pub gear_type: String,
+    pub gears: Int
+}
+
+// Composed type
+type Car {
+    pub make: String,
+    pub model: String,
+    pub engine: Engine,
+    pub transmission: Transmission
+}
+
+let my_car = Car {
+    make = "Toyota",
+    model = "Supra",
+    engine = Engine {
+        horsepower = 382,
+        fuel_type = "Gasoline"
+    },
+    transmission = Transmission {
+        gear_type = "manual",
+        gears = 6
+    }
+}
+
+print(\`{my_car.make} {my_car.model} - {my_car.engine.horsepower}hp\`)`} />
+
+## Best Practices
+
+- **Small, focused types** - Keep types simple and focused on one responsibility
+- **Use composition** - Build complex types from simpler ones rather than making one huge type
+- **Public interface design** - Only mark fields as `pub` when they need to be accessed externally
+- **Descriptive names** - Use PascalCase for type names and snake_case for field names
+
+## Common Errors
+
+### Type name must start with uppercase
+
+<CodeBlock language="jitzu" code={`type person { pub name: String }
+// Error: Type names must start with an uppercase letter
+
+// Fix: use PascalCase
+type Person { pub name: String }`} />
+
+### Accessing a private field
+
+<CodeBlock language="jitzu" code={`type Account {
+    pub owner: String,
+    balance: Double,  // private
+}
+
+let acc = Account { owner = "Alice", balance = 100.0 }
+print(acc.balance)
+// Error: Cannot find function 'balance' on 'Account'
+
+// Fix: mark the field as pub, or access through a method`} />
+
+### Incompatible types in binary operation
+
+<CodeBlock language="jitzu" code={`let result = "hello" - 5
+// Error: Operation sub not supported for types 'String' and 'Int'
+
+// Fix: use compatible types
+let result = 10 - 5`} />
+
+Next, explore [Traits & Methods](/docs/language/traits) to learn how to add behavior to your types.

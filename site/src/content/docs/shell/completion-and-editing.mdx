@@ -1,0 +1,143 @@
+---
+title: "Completion & Editing"
+description: "The Jitzu shell includes a custom readline implementation with tab completion, history predictions, reverse search, text selection, and full line-editing support."
+section: "Shell"
+order: 4
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Completion & Editing
+
+The Jitzu shell includes a custom readline implementation with tab completion, history
+predictions, reverse search, text selection, and full line-editing support.
+
+## Tab Completion
+
+Press **Tab** to trigger context-aware completions. The shell completes:
+
+- **File paths** — files and directories in the current directory, with tilde (`~`) and label expansion
+- **Built-in commands** — all 60+ shell builtins
+- **Executables on PATH** — programs available in your system PATH
+- **Jitzu identifiers** — variables, functions, and types from the current session
+- **Label paths** — type a label prefix (e.g. `git:`) and Tab completes paths within the labeled directory
+
+### Completion Workflow
+
+If there's a single match, it's applied immediately. If there are multiple matches,
+a dropdown appears:
+
+- **Up/Down** — navigate the dropdown
+- **Tab** — accept the highlighted completion
+- **Escape** — dismiss
+
+<CodeBlock language="shell" code={`> gre⇥         → grep
+> src/Pa⇥      → src/Parser.cs
+> git:proj⇥    → git:projects/`} />
+
+## History Predictions
+
+As you type, the shell shows matching entries from your command history in a dropdown.
+Ghost text does not appear until you select an entry.
+
+- **Down Arrow** — enter the history dropdown (ghost text appears for the selected entry)
+- **Tab** — accept the selected prediction (or open completions if no entry is selected)
+- **Right Arrow** — accept the ghost text
+- **Delete** — remove the selected entry from history
+- **Escape** — dismiss predictions
+
+## Reverse History Search
+
+Press **Ctrl+R** to enter reverse search mode. Type a substring to search
+backward through history. Press **Ctrl+R** again to cycle to the next match.
+
+<CodeBlock language="shell" code={`(reverse-search): build
+→ dotnet build --configuration Release`} />
+
+Press **Enter** to execute the match, **Escape** to cancel, or any
+other key to exit search mode and edit the matched line.
+
+## History Navigation
+
+When no dropdown is visible, the Up and Down arrow keys navigate through your full command history.
+History is persisted to disk across sessions.
+
+- **Up Arrow** — previous command in history
+- **Down Arrow** — next command in history
+- `history` — display full command history with line numbers
+
+Duplicate commands are deduplicated — only the most recent occurrence is kept.
+
+## Line Editing
+
+### Cursor Movement
+
+<table>
+  <thead>
+    <tr>
+      <th>Shortcut</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>Left / Right</code></td><td>Move cursor one character</td></tr>
+    <tr><td><code>Ctrl+Left / Ctrl+Right</code></td><td>Jump by word</td></tr>
+    <tr><td><code>Home / Ctrl+A</code></td><td>Move to beginning of line</td></tr>
+    <tr><td><code>End</code></td><td>Move to end of line</td></tr>
+  </tbody>
+</table>
+
+### Editing
+
+<table>
+  <thead>
+    <tr>
+      <th>Shortcut</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>Backspace</code></td><td>Delete character before cursor</td></tr>
+    <tr><td><code>Ctrl+Backspace</code></td><td>Delete word before cursor</td></tr>
+    <tr><td><code>Delete</code></td><td>Delete character after cursor</td></tr>
+  </tbody>
+</table>
+
+### Text Selection
+
+<table>
+  <thead>
+    <tr>
+      <th>Shortcut</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>Shift+Left / Shift+Right</code></td><td>Extend selection by character</td></tr>
+    <tr><td><code>Shift+Home / Shift+End</code></td><td>Select to beginning/end of line</td></tr>
+    <tr><td><code>Ctrl+C</code> (with selection)</td><td>Copy selection to clipboard</td></tr>
+  </tbody>
+</table>
+
+Typing or pasting while text is selected replaces the selected region.
+
+## Other Shortcuts
+
+<table>
+  <thead>
+    <tr>
+      <th>Shortcut</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>Ctrl+C</code> (no selection)</td><td>Cancel current line</td></tr>
+    <tr><td><code>Ctrl+R</code></td><td>Reverse history search</td></tr>
+    <tr><td><code>Escape</code></td><td>Dismiss predictions/completions</td></tr>
+  </tbody>
+</table>
+
+## Syntax Highlighting
+
+The shell prompt applies live syntax coloring as you type, highlighting commands, keywords,
+strings, flags, pipe operators, and boolean values. Colors are configurable via the [theme system](/docs/shell/customization).

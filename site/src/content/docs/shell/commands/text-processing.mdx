@@ -1,0 +1,56 @@
+---
+title: "Text Processing"
+description: "Built-in text processing commands in the Jitzu shell."
+section: "Shell"
+order: 2
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Text Processing
+
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>cat file</code></td><td>Display file with line numbers</td></tr>
+    <tr><td><code>head [-n N] file</code></td><td>Show first N lines (default 10)</td></tr>
+    <tr><td><code>tail [-n N] file</code></td><td>Show last N lines (default 10)</td></tr>
+    <tr><td><code>grep [flags] pattern [files]</code></td><td>Search files for pattern</td></tr>
+    <tr><td><code>sort [-r/-n/-u] file</code></td><td>Sort lines</td></tr>
+    <tr><td><code>uniq [-c/-d] file</code></td><td>Remove consecutive duplicate lines</td></tr>
+    <tr><td><code>wc [-l/-w/-c] file</code></td><td>Count lines, words, or characters</td></tr>
+    <tr><td><code>diff file1 file2</code></td><td>Compare two files</td></tr>
+    <tr><td><code>tr [-d] s1 s2 file</code></td><td>Translate or delete characters</td></tr>
+    <tr><td><code>cut -d/-f/-c file</code></td><td>Extract fields or characters</td></tr>
+    <tr><td><code>rev file</code></td><td>Reverse characters in each line</td></tr>
+    <tr><td><code>tac file</code></td><td>Print file with lines in reverse order</td></tr>
+    <tr><td><code>paste [-d] file file</code></td><td>Merge lines from multiple files</td></tr>
+    <tr><td><code>more/less</code></td><td>Paginated output viewer</td></tr>
+  </tbody>
+</table>
+
+## grep
+
+Search for patterns in files with highlighted matches. Supports recursive search, case-insensitive matching, line numbers, and match counting.
+
+<CodeBlock language="shell" code={`> grep -rn "TODO" src/
+src/Parser.cs:42:    // TODO: Handle forward references
+src/Interpreter.cs:156:    // TODO: Optimize stack layout
+
+> grep -ic "error" logs/
+logs/app.log:15
+logs/server.log:3`} />
+
+Flags: `-i` case insensitive, `-n` line numbers, `-r` recursive, `-c` count only.
+
+## sort
+
+<CodeBlock language="shell" code={`> sort -r names.txt
+Zara
+Mike
+Alice`} />

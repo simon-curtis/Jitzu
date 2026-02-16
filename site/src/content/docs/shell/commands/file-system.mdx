@@ -1,0 +1,61 @@
+---
+title: "File System"
+description: "Built-in file system commands in the Jitzu shell."
+section: "Shell"
+order: 1
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# File System
+
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>ls [dir]</code></td><td>List files with colored output, attributes, and sizes</td></tr>
+    <tr><td><code>cd [dir]</code></td><td>Change directory (<code>cd -</code> for previous, <code>cd</code> for home)</td></tr>
+    <tr><td><code>pwd</code></td><td>Print working directory</td></tr>
+    <tr><td><code>mkdir [-cd] dir</code></td><td>Create directory (<code>-cd</code> to enter it immediately)</td></tr>
+    <tr><td><code>touch [-d/-t] file</code></td><td>Create file or update timestamp</td></tr>
+    <tr><td><code>rm [-r] path</code></td><td>Remove file or directory</td></tr>
+    <tr><td><code>mv src dst</code></td><td>Move or rename file/directory</td></tr>
+    <tr><td><code>cp [-r] src dst</code></td><td>Copy file or directory</td></tr>
+    <tr><td><code>ln [-s] target link</code></td><td>Create hard or symbolic link</td></tr>
+    <tr><td><code>stat file</code></td><td>Display file metadata</td></tr>
+    <tr><td><code>chmod +/-r file</code></td><td>Toggle file attributes (r/h/s)</td></tr>
+    <tr><td><code>find path [opts]</code></td><td>Recursive file search</td></tr>
+    <tr><td><code>du [-sh] [dir]</code></td><td>Disk usage of files/directories</td></tr>
+    <tr><td><code>df</code></td><td>Show disk space of mounted drives</td></tr>
+    <tr><td><code>mktemp [-d]</code></td><td>Create temporary file or directory</td></tr>
+    <tr><td><code>basename path [suffix]</code></td><td>Strip directory and optional suffix</td></tr>
+    <tr><td><code>dirname path</code></td><td>Strip last component from path</td></tr>
+  </tbody>
+</table>
+
+## ls
+
+On Windows, `ls` is a builtin that shows file attributes, sizes, timestamps, and color-coded names by file type. On other platforms it falls through to the system `ls`.
+
+<CodeBlock language="shell" code={`> ls
+d-----       -  Jan 15 09:44  src/
+d-----       -  Jan 10 11:20  tests/
+-a-r--   2.5K  Jan 15 14:23  Program.cs
+-a-r--   1.8K  Jan 12 10:05  README.md`} />
+
+## find
+
+Recursive file search with filtering by name pattern, type, and extension:
+
+<CodeBlock language="shell" code={`> find src -ext cs
+src/Parser.cs
+src/Lexer.cs
+src/Interpreter.cs
+
+> find . -name "*.json" -type f
+./config.json
+./package.json`} />

@@ -116,7 +116,7 @@ jobs:
         with:
           files: artifacts/*.zip
           name: Jitzu ${{ steps.version.outputs.version }}
-          draft: true
+          draft: false
           body: |
             ## Downloads
 

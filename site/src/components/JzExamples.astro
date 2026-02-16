@@ -1,0 +1,32 @@
+---
+import CodeBlock from './CodeBlock.astro';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+interface Props {
+  file: string;
+}
+
+const { file } = Astro.props;
+
+// Resolve relative to project root's docs/syntax directory
+const filePath = resolve(process.cwd(), 'docs', 'syntax', file);
+const content = readFileSync(filePath, 'utf-8');
+
+const examples = content
+  .split(/^\/\/ /gm)
+  .map((example) => {
+    const splitAt = example.indexOf('\n');
+    const title = example.slice(0, splitAt).trim();
+    const code = example.slice(splitAt).trim();
+    return { title, code };
+  })
+  .filter((example) => example.title && example.code);
+---
+
+{examples.map((example) => (
+  <section class="space-y-3 reveal">
+    <h2 class="text-2xl font-semibold tracking-tight text-foreground">{example.title}</h2>
+    <CodeBlock language="jitzu" code={example.code} />
+  </section>
+))}

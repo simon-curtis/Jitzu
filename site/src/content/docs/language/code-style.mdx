@@ -1,0 +1,168 @@
+---
+title: "Code Style"
+description: "Naming conventions and style guide for Jitzu code."
+section: "Language"
+order: 14
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Code Style
+
+Jitzu has a small set of naming rules. Following them keeps your code consistent with the standard library, built-in types, and .NET interop.
+
+## Naming Rules
+
+| Element | Convention | Correct | Wrong |
+|---------|-----------|---------|-------|
+| Keywords | lowercase | `let`, `fun`, `type` | `Let`, `Fun` |
+| Types | PascalCase | `Person`, `HttpClient` | `person`, `http_client` |
+| Union variants | PascalCase | `Ok(value)`, `Circle(r)` | `ok(value)`, `circle(r)` |
+| Traits | PascalCase | `Greet`, `Serializable` | `greet`, `serializable` |
+| Functions | snake_case | `load_config()` | `LoadConfig()`, `loadConfig()` |
+| Methods (impl) | snake_case | `get_name(self)` | `GetName(self)`, `getName(self)` |
+| .NET methods | PascalCase | `str.ToUpper()` | `str.to_upper()` |
+| Built-in functions | lowercase | `print()`, `rand()` | `Print()`, `Rand()` |
+| Variables | snake_case | `first_name`, `is_valid` | `FirstName`, `firstName` |
+| Parameters | snake_case | `max_retries`, `user_id` | `MaxRetries`, `userId` |
+| Fields | snake_case | `pub name: String` | `pub Name: String` |
+
+## Types, Traits, and Unions
+
+All type-level declarations use PascalCase. This includes `type`, `trait`, `union`, and their variants.
+
+<CodeBlock language="jitzu" code={`type Person {
+    pub name: String,
+    pub age: Int,
+    pub is_active: Bool,
+}
+
+trait Greet {
+    fun greeting(self): String
+}
+
+union Shape {
+    Circle(Double),
+    Square(Double),
+}`} />
+
+## Functions and Methods
+
+Both standalone functions and `impl` methods use snake_case.
+
+<CodeBlock language="jitzu" code={`// ✓ Functions are snake_case
+fun factorial(n: Int): Int {
+    if n <= 1 { 1 } else { n * factorial(n - 1) }
+}
+
+fun load_config(path: String): Result<Config, String> {
+    let file = try read_file(path)
+    Ok(try parse_json(file))
+}`} />
+
+<CodeBlock language="jitzu" code={`// ✓ Methods (with self) are also snake_case
+impl Greet for Person {
+    fun greeting(self): String {
+        \`Hello, {self.name}!\`
+    }
+}
+
+impl Drop for Connection {
+    fun drop(self) {
+        print("closed")
+    }
+}`} />
+
+<CodeBlock language="jitzu" code={`// ✗ Don't do this
+fun LoadConfig(): Config { }        // PascalCase function
+fun loadConfig(): Config { }        // camelCase function
+
+impl Greet for Person {
+    fun Greeting(self): String { }   // PascalCase method
+    fun getGreeting(self): String { } // camelCase method
+}`} />
+
+## .NET Methods
+
+Since Jitzu runs on .NET, calling methods on .NET types uses their original PascalCase names. These are not Jitzu methods — they are CLR method calls.
+
+<CodeBlock language="jitzu" code={`// .NET string methods — PascalCase
+let upper = name.ToUpper()
+let trimmed = input.Trim()
+let parts = line.Split(",")
+
+// .NET static methods — PascalCase
+let n = Int.Parse("42")
+let exists = File.Exists("config.json")`} />
+
+## Built-in Functions
+
+The runtime provides a small set of lowercase global functions.
+
+<CodeBlock language="jitzu" code={`print("Hello, world!")
+let n = rand(1, 100)
+let head = first(items)
+let tail = last(items)`} />
+
+Single-word builtins like `print` and `rand` are lowercase without underscores. Your own functions should use underscores for multi-word names (e.g. `load_config`).
+
+## Variables, Parameters, and Fields
+
+All value-level names use snake_case. Boolean values typically use an `is_`, `has_`, or `can_` prefix.
+
+<CodeBlock language="jitzu" code={`// ✓ Variables — snake_case
+let first_name = "Alice"
+let is_valid = true
+let max_retries = 3
+let mut request_count = 0
+
+// ✓ Fields — snake_case
+type UserProfile {
+    pub display_name: String,
+    pub email_address: String,
+    pub is_verified: Bool,
+    mut login_count: Int,
+}
+
+// ✓ Parameters — snake_case
+fun send_email(to_address: String, subject: String): Result<Bool, String> {
+    // ...
+}`} />
+
+<CodeBlock language="jitzu" code={`// ✗ Don't do this
+let FirstName = "Alice"    // PascalCase variable
+let firstName = "Alice"    // camelCase variable
+let IsValid = true         // PascalCase variable`} />
+
+## Formatting
+
+Jitzu uses 4-space indentation. Opening braces go on the same line. Single-expression bodies can stay on one line.
+
+<CodeBlock language="jitzu" code={`// ✓ Braces on same line, 4-space indent
+fun fibonacci(n: Int): Int {
+    if n <= 1 {
+        n
+    } else {
+        fibonacci(n - 1) + fibonacci(n - 2)
+    }
+}
+
+// ✓ Short expressions can be one line
+fun square(n: Int): Int { n * n }
+
+// ✓ Match arms indented once
+let label = match status {
+    Ok(value) => \`Success: {value}\`,
+    Err(e) => \`Error: {e}\`,
+}`} />
+
+## Quick Reference
+
+When in doubt:
+
+- **Defining a type?** PascalCase: `type HttpResponse { }`
+- **Defining a function?** snake_case: `fun parse_json()`
+- **Defining a method with self?** snake_case: `fun get_name(self)`
+- **Calling a .NET method?** PascalCase: `.ToUpper()`, `.Split()`
+- **Naming a variable?** snake_case: `let response_body = ...`
+- **Using a builtin?** lowercase: `print()`, `rand()`

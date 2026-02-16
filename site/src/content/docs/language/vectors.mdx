@@ -1,0 +1,104 @@
+---
+title: Vectors
+description: Vectors are Jitzu's dynamic arrays — create, access, iterate, and transform collections of values.
+section: Language
+order: 6
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Vectors
+
+Vectors are dynamic arrays that can grow at runtime. They are the primary collection type in Jitzu.
+
+## Creating Vectors
+
+<CodeBlock language="jitzu" code={`// Initialize with values
+let numbers = [1, 2, 3, 4, 5]
+let names = ["Alice", "Bob", "Charlie"]
+
+// Empty typed vector
+let scores = Double[]
+
+// Explicit type annotation
+let ages: Int[] = [25, 30, 35]`} />
+
+## Accessing Elements
+
+<CodeBlock language="jitzu" code={`let colors = ["red", "green", "blue"]
+
+// Index from the start (0-based)
+print(colors[0])   // "red"
+print(colors[1])   // "green"
+print(colors[2])   // "blue"
+
+// Negative indexing (from the end)
+print(colors[-1])  // "blue"
+print(colors[-2])  // "green"`} />
+
+## Adding Elements
+
+<CodeBlock language="jitzu" code={`let items = [1, 2, 3]
+
+// push appends to the end
+items.push(4)
+items.push(5)
+print(items)  // [1, 2, 3, 4, 5]`} />
+
+## Length
+
+<CodeBlock language="jitzu" code={`let items = [10, 20, 30]
+print(items.length)  // 3`} />
+
+## Iterating
+
+<CodeBlock language="jitzu" code={`let fruits = ["apple", "banana", "cherry"]
+
+// for-in loop
+for fruit in fruits {
+    print(\`I like {fruit}\`)
+}
+
+// With index using a range
+for i in 0..fruits.length {
+    print(\`{i}: {fruits[i]}\`)
+}`} />
+
+## Safe Indexing
+
+Indexing a vector returns an `Option` — out-of-bounds access returns `None` instead of crashing:
+
+<CodeBlock language="jitzu" code={`let items = [10, 20, 30]
+
+match items[5] {
+    Some(value) => print(value),
+    None => print("Index out of bounds"),
+}`} />
+
+## Mixed-Type Vectors
+
+Vectors can hold mixed types when needed:
+
+<CodeBlock language="jitzu" code={`let things = [1, 'a', false, "hello"]
+things.push(3.14)
+print(things)`} />
+
+## Common Patterns
+
+### Building a vector in a loop
+
+<CodeBlock language="jitzu" code={`let squares = Int[]
+for i in 1..=10 {
+    squares.push(i ** 2)
+}
+print(squares)  // [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]`} />
+
+### Checking if a vector is empty
+
+<CodeBlock language="jitzu" code={`let items = Int[]
+
+if items.length == 0 {
+    print("No items yet")
+}`} />
+
+Vectors are Jitzu's workhorse collection. Next, explore [Dates](/docs/language/dates) for working with dates and times.

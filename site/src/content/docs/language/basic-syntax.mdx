@@ -1,0 +1,276 @@
+---
+title: Basic Syntax
+description: This page covers the fundamental syntax elements of Jitzu, including comments, variables, and the import system.
+section: Language
+order: 2
+---
+
+import CodeBlock from '@/components/CodeBlock.astro';
+
+# Basic Syntax
+
+This page covers the fundamental syntax elements of Jitzu, including comments, variables, and the import system.
+
+## Comments
+
+Jitzu supports both single-line and multi-line comments:
+
+<CodeBlock language="jitzu" code={`// Single-line comment
+print("Hello") // End-of-line comment
+
+/*
+ * Multi-line comment
+ * Can span multiple lines
+ */`} />
+
+## Variables
+
+### Immutable Variables (Default)
+
+By default, variables in Jitzu are declared with `let`:
+
+<CodeBlock language="jitzu" code={`let x = 42
+let name = "Alice"
+let is_valid = true`} />
+
+### Mutable Variables
+
+Use the `mut` keyword to create mutable variables:
+
+<CodeBlock language="jitzu" code={`let mut counter = 0
+counter += 1
+counter = counter * 2
+
+let mut message = "Hello"
+message = message + " World"
+print(message) // "Hello World"`} />
+
+### Type Annotations
+
+While Jitzu has type inference, you can explicitly annotate types:
+
+<CodeBlock language="jitzu" code={`// Type inferred
+let age = 25                    // Int
+let height = 5.9               // Double
+let name = "Bob"               // String
+
+// Explicit types
+let age: Int = 25
+let height: Double = 5.9
+let name: String = "Bob"
+let numbers: Int[] = [1, 2, 3]`} />
+
+## Variable Naming
+
+Jitzu follows these naming conventions:
+
+<CodeBlock language="jitzu" code={`// Variables and functions: snake_case
+let user_name = "alice"
+let max_retry_count = 3
+
+// Types: PascalCase
+type UserProfile { ... }`} />
+
+## Scope and Shadowing
+
+### Block Scope
+
+Variables are scoped to their containing block:
+
+<CodeBlock language="jitzu" code={`let x = 1
+
+if true {
+    let y = 2
+    print(x) // 1 - can access outer scope
+    print(y) // 2
+}
+
+// print(y) // Error: y is not in scope`} />
+
+### Variable Shadowing
+
+You can shadow variables by declaring new ones with the same name:
+
+<CodeBlock language="jitzu" code={`let x = 5
+print(x) // 5
+
+let x = "hello" // Shadows the previous x
+print(x) // "hello"
+
+{
+    let x = true // Shadows again within this block
+    print(x) // true
+}
+
+print(x) // "hello" - back to the string version`} />
+
+## Import System
+
+Jitzu uses `open` statements for imports.
+
+### Basic Imports
+
+Import from relative paths:
+
+<CodeBlock language="jitzu" code={`// Import entire module
+open "./utils.jz"
+
+// Import from parent directory
+open "../shared_code/helpers.jz"
+
+// Import from subdirectory
+open "./math/calculations.jz"`} />
+
+### Selective Imports
+
+Import specific functions or types:
+
+<CodeBlock language="jitzu" code={`// Import specific items
+open "../shared_code/greet.jz" as { Greet }
+
+// Import multiple items
+open "./math.jz" as { add, subtract, multiply }
+
+// Mix of functions and types
+open "./models.jz" as { User, create_user, validate_user }`} />
+
+### Aliased Imports
+
+Import with custom names to avoid conflicts:
+
+<CodeBlock language="jitzu" code={`// Import entire module with alias
+open "./math.jz" as Math
+
+// Use aliased import
+let result = Math.add(5, 3)`} />
+
+### Import Example
+
+Here's how you might structure imports in a Jitzu file:
+
+<CodeBlock language="jitzu" code={`// Local utilities
+open "./utils/string_helpers.jz" as { capitalize }
+open "./config.jz" as Config
+
+// Models and types
+open "./models/user.jz" as { User, UserRole }
+
+// Business logic
+open "./services/auth.jz" as Auth
+
+// Now use the imported functionality
+let user = User {
+    name = "Alice",
+    role = UserRole.Admin
+}
+
+if Auth.IsAuthorized(user) {
+    print("Access granted")
+}`} />
+
+## String Literals
+
+Jitzu supports multiple string literal formats:
+
+<CodeBlock language="jitzu" code={`// Regular strings
+let simple = "Hello World"
+let with_escape = "Hello\\nWorld\\tTab"
+
+// Template literals (string interpolation)
+let name = "Alice"
+let age = 30
+let message = \`Hello {name}, you are {age} years old\`
+
+// You can use expressions in interpolation
+let calculation = \`2 + 2 = {2 + 2}\``} />
+
+## Semicolons
+
+Semicolons are optional in Jitzu:
+
+<CodeBlock language="jitzu" code={`// These are equivalent
+let x = 42;
+let x = 42
+
+// Useful for multiple statements on one line
+let a = 1; let b = 2; let c = a + b`} />
+
+## Expression vs Statement
+
+In Jitzu, almost everything is an expression that returns a value:
+
+<CodeBlock language="jitzu" code={`// if is an expression
+let message = if age >= 18 { "adult" } else { "minor" }
+
+// Blocks are expressions
+let result = {
+    let x = 10
+    let y = 20
+    x + y // This value is returned from the block
+}`} />
+
+## Best Practices
+
+- Prefer `let` over `let mut` when possible
+- Use descriptive names: `user_count` instead of `uc`
+- Group related variable declarations together
+- Group imports logically at the top of files
+- Use selective imports to be explicit about dependencies
+
+<CodeBlock language="jitzu" code={`// Recommended file organization:
+
+// 1. Imports first
+open "./config.jz" as Config
+open "./utils.jz" as { helper_function }
+
+// 2. Main logic
+let mut attempt_count = 0
+let success = false
+
+while attempt_count < 3 && !success {
+    success = try_operation()
+    attempt_count += 1
+}`} />
+
+## Common Errors
+
+### Mutating an immutable variable
+
+<CodeBlock language="jitzu" code={`let x = 10
+x = 20  // Error: cannot assign to immutable variable 'x'
+
+// Fix: declare with mut
+let mut x = 10
+x = 20`} />
+
+### Variable not in scope
+
+<CodeBlock language="jitzu" code={`if true {
+    let y = 42
+}
+print(y)  // Error: unknown identifier 'y'
+
+// Fix: declare y in the outer scope
+let mut y = 0
+if true {
+    y = 42
+}
+print(y)`} />
+
+### Unterminated string
+
+<CodeBlock language="jitzu" code={`let msg = "hello
+// Error: String terminated abnormally
+
+// Fix: close the string on the same line
+let msg = "hello"`} />
+
+### Unterminated comment
+
+<CodeBlock language="jitzu" code={`/* this comment never closes
+// Error: Non-terminated comment
+
+// Fix: close the comment
+/* this comment is closed */`} />
+
+This covers the essential syntax elements you'll use in every Jitzu program. Next, explore [Data Types](/docs/language/data-types) to learn about Jitzu's type system.

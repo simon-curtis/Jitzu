@@ -1,0 +1,133 @@
+---
+import { highlightJitzu } from '@/lib/jitzu-tokenizer';
+import { theme } from '@/lib/theme';
+import { Code } from 'astro:components';
+
+function highlightShell(code: string): string {
+  return code.split('\n').map(line => {
+    // Prompt lines: "> command ..."
+    const promptMatch = line.match(/^(\s*)(> )(.*)$/);
+    if (promptMatch) {
+      const [, indent, arrow, rest] = promptMatch;
+      const parts = rest.split(/\s+/);
+      const cmd = parts[0];
+      const args = parts.slice(1).map(part => {
+        if (part.startsWith('-')) return `<span style="color:${theme.flag}">${esc(part)}</span>`;
+        if (part.startsWith('"') || part.startsWith("'") || part.startsWith('`')) return `<span style="color:${theme.string}">${esc(part)}</span>`;
+        if (part === '|') return `<span style="color:${theme.dim}">${esc(part)}</span>`;
+        return `<span style="color:${theme.text}">${esc(part)}</span>`;
+      }).join(' ');
+      const result = `${esc(indent)}<span style="color:${theme.arrow};font-weight:bold">${esc(arrow)}</span><span style="color:${theme.command}">${esc(cmd)}</span>`;
+      return args ? `${result} ${args}` : result;
+    }
+    // Prompt info line: "user ~/path (branch) *" or "user@host ~/path (branch) *  time"
+    const infoMatch = line.match(/^(\S+@\S+|\S+)(\s+)(~[^\s(]*)(\s*\([^)]*\))?(\s*\*)?(.*)$/);
+    if (infoMatch) {
+      const [, user, sp1, dir, branch, dirty, rest] = infoMatch;
+      let result = `<span style="color:${theme.user}">${esc(user)}</span>${esc(sp1)}<span style="color:${theme.dir}">${esc(dir)}</span>`;
+      if (branch) result += `<span style="color:${theme.branch}">${esc(branch)}</span>`;
+      if (dirty) result += `<span style="color:${theme.dirty}">${esc(dirty)}</span>`;
+      if (rest) result += `<span style="color:${theme.dim}">${esc(rest)}</span>`;
+      return result;
+    }
+    // Key-value lines: "• key : value"
+    const kvMatch = line.match(/^(•\s+)(\S+)(\s+:\s+)(.*)$/);
+    if (kvMatch) {
+      const [, bullet, key, sep, value] = kvMatch;
+      return `<span style="color:${theme.dim}">${esc(bullet)}</span><span style="color:${theme.command}">${esc(key)}</span><span style="color:${theme.dim}">${esc(sep)}</span><span style="color:${theme.text}">${esc(value)}</span>`;
+    }
+    // Version/banner lines (e.g. "jzsh v0.3.0")
+    const versionMatch = line.match(/^(jzsh|jz)\s+(v[\d.]+)$/);
+    if (versionMatch) {
+      const [, name, ver] = versionMatch;
+      return `<span style="color:${theme.command};font-weight:bold">${esc(name)}</span> <span style="color:${theme.number}">${esc(ver)}</span>`;
+    }
+    // ls output: "d-----  -  Jan 15 09:44  src/" or "-a-r--  2.5K  Jan 15 14:23  Program.cs"
+    const lsMatch = line.match(/^([d-][a-z-]{4,5})(\s+)(\S+)(\s+)(\w{3}\s+\d{1,2}\s+\d{2}:\d{2})(\s+)(.+)$/);
+    if (lsMatch) {
+      const [, attrs, sp1, size, sp2, date, sp3, name] = lsMatch;
+      const isDir = attrs.startsWith('d');
+      const nameColor = isDir ? theme.lsDirectory :
+        name.match(/\.(cs|ts|js|py|rs|go|jz)$/) ? theme.lsCode :
+        name.match(/\.(json|yaml|yml|toml|xml|ini|cfg)$/) ? theme.lsConfig :
+        name.match(/\.(zip|tar|gz|rar|7z)$/) ? theme.lsArchive :
+        name.match(/\.(png|jpg|jpeg|gif|svg|mp4|mp3)$/) ? theme.lsMedia :
+        name.match(/\.md$/) ? theme.text :
+        theme.text;
+      const nameBold = isDir ? 'font-weight:bold;' : '';
+      return `<span style="color:${theme.dim}">${esc(attrs)}</span>${esc(sp1)}<span style="color:${size === '-' ? theme.dim : theme.lsSize}">${esc(size)}</span>${esc(sp2)}<span style="color:${theme.dim}">${esc(date)}</span>${esc(sp3)}<span style="color:${nameColor};${nameBold}">${esc(name)}</span>`;
+    }
+    // Strings in quotes
+    const stringLine = line.match(/^".*"$/);
+    if (stringLine) {
+      return `<span style="color:${theme.string}">${esc(line)}</span>`;
+    }
+    // Output lines — plain
+    return `<span style="color:${theme.text}">${esc(line)}</span>`;
+  }).join('\n');
+}
+
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+interface Props {
+  code: string;
+  language?: string;
+  showLineNumbers?: boolean;
+}
+
+const { code, language = 'jitzu', showLineNumbers = false } = Astro.props;
+const isJitzu = language === 'jitzu' || language === 'jz';
+const isShell = language === 'shell';
+const lines = code.split('\n');
+---
+
+{isShell ? (
+  <div class="relative group">
+    <div class="relative rounded-xl overflow-hidden glass transition-shadow duration-300">
+      <div class="flex items-center px-4 py-2 bg-white/[0.02] border-b border-white/[0.06]">
+        <span class="text-xs uppercase tracking-wider text-muted-foreground">Shell</span>
+      </div>
+      <pre
+        class="p-6 overflow-auto"
+        style={`margin:0;font-family:JetBrains Mono,Consolas,Monaco,'Andale Mono',monospace;font-size:0.875rem;line-height:1.6;color:${theme.text};background:transparent`}
+      ><code style="font-family:inherit;font-size:inherit;line-height:inherit" set:html={highlightShell(code)} /></pre>
+    </div>
+  </div>
+) : isJitzu ? (
+  <div class="relative group">
+    <div class="relative rounded-xl overflow-hidden glass transition-shadow duration-300">
+      <div class="flex items-center px-4 py-2 bg-white/[0.02] border-b border-white/[0.06]">
+        <span class="text-xs uppercase tracking-wider text-muted-foreground">Jitzu</span>
+      </div>
+      <div class="flex">
+        {showLineNumbers && (
+          <div
+            class="px-4 py-6 text-right select-none border-r border-white/[0.06]"
+            style="color:#666;font-family:JetBrains Mono,Consolas,Monaco,'Andale Mono',monospace;font-size:0.875rem;line-height:1.6;background:rgba(255,255,255,0.05)"
+          >
+            {lines.map((_, i) => (
+              <div>{String(i + 1).padStart(2, ' ')}</div>
+            ))}
+          </div>
+        )}
+        <pre
+          class="flex-1 p-6 overflow-auto"
+          style={`margin:0;font-family:JetBrains Mono,Consolas,Monaco,'Andale Mono',monospace;font-size:0.875rem;line-height:1.6;color:${theme.text};background:transparent`}
+        ><code style="font-family:inherit;font-size:inherit;line-height:inherit" set:html={highlightJitzu(code)} /></pre>
+      </div>
+    </div>
+  </div>
+) : (
+  <div class="relative group">
+    <div class="relative rounded-xl overflow-hidden glass transition-shadow duration-300">
+      <div class="flex items-center px-4 py-2 bg-white/[0.02] border-b border-white/[0.06]">
+        <span class="text-xs uppercase tracking-wider text-muted-foreground">{language}</span>
+      </div>
+      <div class="p-6 overflow-auto [&_pre]:!bg-transparent [&_pre]:!m-0 [&_pre]:!p-0" style="font-family:JetBrains Mono,Consolas,Monaco,'Andale Mono',monospace;font-size:0.875rem;line-height:1.6">
+        <Code code={code} lang={language as any} theme="github-dark" />
+      </div>
+    </div>
+  </div>
+)}
