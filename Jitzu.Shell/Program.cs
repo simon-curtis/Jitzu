@@ -20,6 +20,12 @@ if (options.SudoExec != null || options.SudoShell || options.SudoLogin)
     return;
 }
 
+if (options.Command is { } command)
+{
+    await ExecuteCommand(command);
+    return;
+}
+
 if (options.ScriptPath is { } scriptPath)
 {
     await ExecuteScriptFile(scriptPath);
@@ -28,6 +34,24 @@ if (options.ScriptPath is { } scriptPath)
 
 await RunReplAsync(options);
 return;
+
+static async Task ExecuteCommand(string command)
+{
+    var theme = await ThemeConfig.LoadAsync();
+    var session = await ShellSession.CreateAsync();
+    var aliasManager = new AliasManager();
+    await aliasManager.InitialiseAsync();
+    var labelManager = new LabelManager();
+    var builtins = new BuiltinCommands(session, theme, aliasManager, labelManager);
+    var strategy = new ExecutionStrategy(session, builtins, aliasManager, labelManager);
+    builtins.SetStrategy(strategy);
+
+    var result = await strategy.ExecuteAsync(command);
+
+    DisplayResult(result, theme);
+
+    Environment.Exit(result.Error == null ? 0 : 1);
+}
 
 static async Task ExecuteScriptFile(string scriptPath)
 {

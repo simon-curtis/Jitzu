@@ -21,11 +21,11 @@ public class TimeCommand : CommandBase
         var proc = Process.GetCurrentProcess();
         var userStart = proc.UserProcessorTime;
         var sysStart = proc.PrivilegedProcessorTime;
-        var sw = Stopwatch.StartNew();
 
+        var startTime = Stopwatch.GetTimestamp();
         var result = await Strategy.ExecuteAsync(command);
+        var executionTime = Stopwatch.GetElapsedTime(startTime);
 
-        sw.Stop();
         proc.Refresh();
         var userTime = proc.UserProcessorTime - userStart;
         var sysTime = proc.PrivilegedProcessorTime - sysStart;
@@ -44,7 +44,7 @@ public class TimeCommand : CommandBase
         }
 
         Console.WriteLine();
-        Console.WriteLine($"{dim}real{reset}    {FormatTimeDetailed(sw.Elapsed)}");
+        Console.WriteLine($"{dim}real{reset}    {FormatTimeDetailed(executionTime)}");
         Console.WriteLine($"{dim}user{reset}    {FormatTimeDetailed(userTime)}");
         Console.WriteLine($"{dim}sys{reset}     {FormatTimeDetailed(sysTime)}");
 

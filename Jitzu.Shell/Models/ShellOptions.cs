@@ -10,6 +10,9 @@ public partial class ShellOptions
 
     public string? ScriptPath { get; init; }
 
+    [Arg(Short = 'c', Long = "command")]
+    public string? Command { get; init; }
+
     [Arg(Long = "sudo-exec")]
     public string? SudoExec { get; init; }
 

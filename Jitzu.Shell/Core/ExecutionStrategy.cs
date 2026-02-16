@@ -1,5 +1,6 @@
 using System.CommandLine.Parsing;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Jitzu.Core;
@@ -1062,31 +1063,54 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
 
     /// <summary>
     /// Executes a hybrid pipeline: captures OS command output then chains through Jitzu functions.
+    /// Uses streaming for efficient processing with early termination support.
     /// </summary>
     private async Task<ShellResult> ExecuteHybridPipelineAsync(string osCommand, string[] jitzuSegments)
     {
         try
         {
-            var currentValue = await CaptureCommandOutputAsync(osCommand);
+            // Start with streaming from the OS command
+            var stream = StreamCommandOutputAsync(osCommand);
+            var cts = new CancellationTokenSource();
 
-            foreach (var segment in jitzuSegments)
+            try
             {
-                var (funcName, args) = ParsePipeSegment(segment);
-                if (funcName == null || !PipeFunctions.Contains(funcName))
-                    return new ShellResult(ResultType.Error, "", new Exception($"Unknown pipe function: {segment}"));
+                // Chain through each Jitzu segment using streaming
+                foreach (var segment in jitzuSegments)
+                {
+                    var (funcName, args) = ParsePipeSegment(segment);
+                    if (funcName == null || !PipeFunctions.Contains(funcName))
+                        return new ShellResult(ResultType.Error, "", new Exception($"Unknown pipe function: {segment}"));
 
-                currentValue = InvokePipeFunction(funcName, currentValue, args);
+                    stream = InvokeStreamingPipeFunction(funcName, stream, args, cts.Token);
+                }
+
+                // For 'print', the function already writes to console during streaming
+                // For other functions, materialize the result
+                if (jitzuSegments.Length > 0)
+                {
+                    var lastFunc = ParsePipeSegment(jitzuSegments[^1]).FuncName;
+                    if (lastFunc is "print" or "tee")
+                    {
+                        // Consume the stream to execute it
+                        await foreach (var _ in stream.WithCancellation(cts.Token)) { }
+                        return new ShellResult(ResultType.OsCommand, "", null);
+                    }
+                }
+
+                // Materialize the stream to a string for output
+                var result = await StreamingPipeline.MaterializeAsync(stream, cts.Token);
+                return new ShellResult(ResultType.Jitzu, result, null);
             }
-
-            // For 'print', the function already wrote to console
-            if (jitzuSegments.Length > 0)
+            finally
             {
-                var lastFunc = ParsePipeSegment(jitzuSegments[^1]).FuncName;
-                if (lastFunc == "print")
-                    return new ShellResult(ResultType.OsCommand, "", null);
+                cts.Dispose();
             }
-
-            return new ShellResult(ResultType.Jitzu, currentValue, null);
+        }
+        catch (OperationCanceledException)
+        {
+            // Early termination is normal for functions like 'first' or 'head'
+            return new ShellResult(ResultType.OsCommand, "", null);
         }
         catch (Exception ex)
         {
@@ -1262,24 +1286,38 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
         var firstFunc = ExtractLeadingIdentifier(rightSegments[0]);
         if (firstFunc != null && PipeFunctions.Contains(firstFunc))
         {
-            // Chain through Jitzu pipe functions
-            var currentValue = output;
-            foreach (var segment in rightSegments)
-            {
-                var (funcName, funcArgs) = ParsePipeSegment(segment);
-                if (funcName == null || !PipeFunctions.Contains(funcName))
-                    return new ShellResult(ResultType.Error, "", new Exception($"Unknown pipe function: {segment}"));
-                currentValue = InvokePipeFunction(funcName, currentValue, funcArgs);
-            }
+            // Chain through Jitzu pipe functions using streaming
+            var stream = StreamingPipeline.StreamFromStringAsync(output);
+            var cts = new CancellationTokenSource();
 
-            if (rightSegments.Length > 0)
+            try
             {
-                var lastFunc = ParsePipeSegment(rightSegments[^1]).FuncName;
-                if (lastFunc == "print")
-                    return new ShellResult(ResultType.OsCommand, "", null);
-            }
+                foreach (var segment in rightSegments)
+                {
+                    var (funcName, funcArgs) = ParsePipeSegment(segment);
+                    if (funcName == null || !PipeFunctions.Contains(funcName))
+                        return new ShellResult(ResultType.Error, "", new Exception($"Unknown pipe function: {segment}"));
+                    stream = InvokeStreamingPipeFunction(funcName, stream, funcArgs, cts.Token);
+                }
 
-            return new ShellResult(ResultType.Jitzu, currentValue, null);
+                if (rightSegments.Length > 0)
+                {
+                    var lastFunc = ParsePipeSegment(rightSegments[^1]).FuncName;
+                    if (lastFunc is "print" or "tee")
+                    {
+                        // Consume the stream to execute it
+                        await foreach (var _ in stream.WithCancellation(cts.Token)) { }
+                        return new ShellResult(ResultType.OsCommand, "", null);
+                    }
+                }
+
+                var result = await StreamingPipeline.MaterializeAsync(stream, cts.Token);
+                return new ShellResult(ResultType.Jitzu, result, null);
+            }
+            finally
+            {
+                cts.Dispose();
+            }
         }
 
         // Pipe into OS command via stdin
@@ -1399,6 +1437,120 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
     {
         Console.WriteLine(input);
         return input;
+    }
+
+    /// <summary>
+    /// Streams output from an OS command or builtin line-by-line.
+    /// Supports early termination via cancellation token.
+    /// </summary>
+    private async IAsyncEnumerable<string> StreamCommandOutputAsync(
+        string command,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var trimmed = command.Trim();
+        var cmdArgs = CommandLineParser.SplitCommandLine(trimmed).ToArray();
+
+        // Check if it's a shell builtin
+        if (builtins.IsBuiltin(cmdArgs[0]))
+        {
+            var builtinResult = await builtins.ExecuteAsync(cmdArgs[0], cmdArgs[1..].AsMemory());
+            var output = Markup.Remove(builtinResult.Output ?? "");
+
+            await foreach (var line in StreamingPipeline.StreamFromStringAsync(output, cancellationToken))
+            {
+                yield return line;
+            }
+            yield break;
+        }
+
+        // Stream from OS command
+        var isWindows = OperatingSystem.IsWindows();
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = isWindows ? "cmd" : "/bin/sh",
+            RedirectStandardOutput = true,
+            RedirectStandardError = false,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        startInfo.ArgumentList.Add(isWindows ? "/c" : "-c");
+        startInfo.ArgumentList.Add(trimmed);
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+            yield break;
+
+        await foreach (var line in StreamingPipeline.StreamFromProcessAsync(process, cancellationToken))
+        {
+            yield return line;
+        }
+
+        // Wait for process to complete (unless cancelled)
+        if (!cancellationToken.IsCancellationRequested)
+            await process.WaitForExitAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Invokes a streaming pipe function, returning an IAsyncEnumerable for chaining.
+    /// </summary>
+    private IAsyncEnumerable<string> InvokeStreamingPipeFunction(
+        string funcName,
+        IAsyncEnumerable<string> stream,
+        object[] args,
+        CancellationToken cancellationToken)
+    {
+        return funcName switch
+        {
+            "first" => StreamingPipeFunctions.FirstAsync(stream, cancellationToken),
+            "last" => StreamingPipeFunctions.LastAsync(stream, cancellationToken),
+            "nth" => StreamingPipeFunctions.NthAsync(stream, args.Length > 0 ? Convert.ToInt32(args[0]) : 0, cancellationToken),
+            "grep" => StreamingPipeFunctions.GrepAsync(stream, args.Length > 0 ? args[0].ToString()! : "", cancellationToken),
+            "head" => StreamingPipeFunctions.HeadAsync(stream, ParseLineCount(args), cancellationToken),
+            "tail" => StreamingPipeFunctions.TailAsync(stream, ParseLineCount(args), cancellationToken),
+            "sort" => StreamingPipeFunctions.SortAsync(stream, args.Any(a => a is "-r" or "--reverse"), cancellationToken),
+            "uniq" => StreamingPipeFunctions.UniqAsync(stream, cancellationToken),
+            "wc" => StreamingPipeFunctions.WcAsync(
+                stream,
+                linesOnly: args.Any(a => a is "-l" or "--lines"),
+                wordsOnly: args.Any(a => a is "-w" or "--words"),
+                charsOnly: args.Any(a => a is "-c" or "--chars"),
+                cancellationToken),
+            "print" => PrintStreamAsync(stream, cancellationToken),
+            "tee" => StreamingPipeFunctions.TeeAsync(stream, args.Length > 0 ? args[0].ToString() : null, cancellationToken),
+            "more" or "less" => PagerStreamAsync(stream, cancellationToken),
+            _ => stream, // Pass through if unknown
+        };
+    }
+
+    /// <summary>
+    /// Prints each line from the stream to console and passes it through.
+    /// </summary>
+    private async IAsyncEnumerable<string> PrintStreamAsync(
+        IAsyncEnumerable<string> stream,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var line in stream.WithCancellation(cancellationToken))
+        {
+            Console.WriteLine(line);
+            yield return line;
+        }
+    }
+
+    /// <summary>
+    /// Displays stream content in the pager.
+    /// </summary>
+    private async IAsyncEnumerable<string> PagerStreamAsync(
+        IAsyncEnumerable<string> stream,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        // Materialize to array for pager (pager needs random access)
+        var lines = await StreamingPipeline.MaterializeToArrayAsync(stream, cancellationToken);
+        builtins.SetPagerInput(string.Join('\n', lines));
+        await builtins.ExecuteAsync("more", ReadOnlyMemory<string>.Empty);
+
+        // Return the lines for potential further processing
+        foreach (var line in lines)
+            yield return line;
     }
 }
 

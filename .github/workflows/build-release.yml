@@ -3,8 +3,7 @@ name: Build & Release
 on:
   push:
     tags:
-      - 'v0.1.*'
-      - '0.1.*'
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -62,26 +61,31 @@ jobs:
         if: matrix.runtime == 'win-x64'
         run: sudo apt-get install -y p7zip-full
       
-      - name: Create ZIPs
+      - name: Resolve version
+        id: version
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG=${GITHUB_REF#refs/tags/}
-            VERSION=${TAG#v}
+            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
           else
-            VERSION="0.1.0"
+            echo "version=0.0.0-dev" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Create ZIPs
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
           cd publish/${{ matrix.suffix }}
           if [ "${{ matrix.runtime }}" = "win-x64" ]; then
             7z a -tzip ../jitzu-${VERSION}-${{ matrix.suffix }}.zip jz.exe jzsh.exe
           else
             zip ../jitzu-${VERSION}-${{ matrix.suffix }}.zip jz jzsh
           fi
-      
+
       - name: Upload ZIP artifacts
         uses: actions/upload-artifact@v4
         with:
           name: jitzu-${{ matrix.suffix }}
-          path: publish/jitzu-0.1.0-${{ matrix.suffix }}.zip
+          path: publish/jitzu-${{ steps.version.outputs.version }}-${{ matrix.suffix }}.zip
           retention-days: 1
 
   release:
@@ -89,8 +93,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+
     steps:
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG=${GITHUB_REF#refs/tags/}
+            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0-dev" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -101,16 +115,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*.zip
-          name: Jitzu 0.1.0
+          name: Jitzu ${{ steps.version.outputs.version }}
           draft: true
           body: |
             ## Downloads
 
             Choose your platform below:
-            - **jitzu-0.1.0-linux-x64.zip** - Linux (x64)
-            - **jitzu-0.1.0-win-x64.zip** - Windows (x64)
-            - **jitzu-0.1.0-osx-x64.zip** - macOS (Intel)
-            - **jitzu-0.1.0-osx-arm64.zip** - macOS (Apple Silicon)
+            - **jitzu-${{ steps.version.outputs.version }}-linux-x64.zip** - Linux (x64)
+            - **jitzu-${{ steps.version.outputs.version }}-win-x64.zip** - Windows (x64)
+            - **jitzu-${{ steps.version.outputs.version }}-osx-x64.zip** - macOS (Intel)
+            - **jitzu-${{ steps.version.outputs.version }}-osx-arm64.zip** - macOS (Apple Silicon)
 
             ## What's Inside
 
@@ -121,13 +135,13 @@ jobs:
 
             ### Linux / macOS
             ```bash
-            unzip jitzu-0.1.0-*.zip
+            unzip jitzu-${{ steps.version.outputs.version }}-*.zip
             ./jzsh
             ```
 
             ### Windows
             ```powershell
-            Expand-Archive jitzu-0.1.0-win-x64.zip
+            Expand-Archive jitzu-${{ steps.version.outputs.version }}-win-x64.zip
             .\jzsh.exe
             ```
         env:
