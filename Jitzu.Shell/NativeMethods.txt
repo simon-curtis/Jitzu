@@ -1,0 +1,4 @@
+GetStdHandle
+GetConsoleMode
+SetConsoleMode
+CONSOLE_MODE

@@ -10,6 +10,7 @@ using Jitzu.Shell.Models;
 using System.Reflection;
 
 Console.OutputEncoding = Encoding.UTF8;
+EnableAnsiSupport();
 
 var options = ShellOptions.Parse(args);
 
@@ -205,7 +206,7 @@ static async Task RunReplAsync(ShellOptions options)
 
             // Build line 3: arrow colored by last command success
             var arrowColor = lastCommandSuccess ? theme["prompt.arrow"] : theme["prompt.error"];
-            var promptChar = isElevated ? "#" : "❯";
+            var promptChar = isElevated ? "#" : ">";
 
             var prompt = $"{line1}\n{line2}{arrowColor}{ThemeConfig.Bold}{promptChar}{ThemeConfig.Reset} ";
             var line = readLine.Read(prompt);
@@ -477,5 +478,29 @@ static string? GetGitBranch(string gitRepoPath)
     catch
     {
         return null;
+    }
+}
+
+/// <summary>
+/// Enables ANSI escape sequence processing on Windows.
+/// On non-Windows platforms this is a no-op since terminals natively support ANSI.
+/// </summary>
+static void EnableAnsiSupport()
+{
+    if (!OperatingSystem.IsWindows())
+        return;
+
+    using var stdout = Windows.Win32.PInvoke.GetStdHandle_SafeHandle(Windows.Win32.System.Console.STD_HANDLE.STD_OUTPUT_HANDLE);
+    if (!stdout.IsInvalid)
+    {
+        if (Windows.Win32.PInvoke.GetConsoleMode(stdout, out var mode))
+            Windows.Win32.PInvoke.SetConsoleMode(stdout, mode | Windows.Win32.System.Console.CONSOLE_MODE.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    }
+
+    using var stderr = Windows.Win32.PInvoke.GetStdHandle_SafeHandle(Windows.Win32.System.Console.STD_HANDLE.STD_ERROR_HANDLE);
+    if (!stderr.IsInvalid)
+    {
+        if (Windows.Win32.PInvoke.GetConsoleMode(stderr, out var mode))
+            Windows.Win32.PInvoke.SetConsoleMode(stderr, mode | Windows.Win32.System.Console.CONSOLE_MODE.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     }
 }
