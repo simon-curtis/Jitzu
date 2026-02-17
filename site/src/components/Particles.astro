@@ -31,8 +31,16 @@ const { count = 150, class: className = '' } = Astro.props;
 
   function resize() {
     const rect = canvas!.getBoundingClientRect();
-    w = rect.width;
-    h = rect.height;
+    const newW = rect.width;
+    const newH = rect.height;
+    if (w > 0 && h > 0 && particles.length > 0) {
+      for (const p of particles) {
+        p.x = (p.x / w) * newW;
+        p.y = (p.y / h) * newH;
+      }
+    }
+    w = newW;
+    h = newH;
     canvas!.width = w * dpr;
     canvas!.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
