@@ -1,13 +1,13 @@
 <p align="center">
-  <a href="https://jitzu.simoncurtis.dev">
-    <img src="https://jitzu.simoncurtis.dev/ninja-500.png?" alt="Logo" height=170>
+  <a href="https://jitzu.dev">
+    <img src="https://jitzu.dev/ninja-500.png?" alt="Logo" height=170>
   </a>
 </p>
 
 <h1 align="center">Jitzu</h1>
 
 <div align="center">
-  <a href="https://jitzu.simoncurtis.dev/docs">Documentation</a>
+  <a href="https://jitzu.dev/docs">Documentation</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://github.com/simon-curtis/jitzu/releases">Downloads</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -103,7 +103,7 @@ jzsh$ exit
 
 ## Documentation
 
-Full documentation is available at [jitzu.simoncurtis.dev/docs](https://jitzu.simoncurtis.dev/docs).
+Full documentation is available at [jitzu.dev/docs](https://jitzu.dev/docs).
 
 ## Building from Source
 

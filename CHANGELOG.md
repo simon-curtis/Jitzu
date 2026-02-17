@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reflection.Emit for dynamic user type creation
 
 ### Documentation
-- Online documentation at https://jitzu.simoncurtis.dev
+- Online documentation at https://jitzu.dev
 - Language guide, quick reference, and feature comparison docs
 
 ### Downloads
