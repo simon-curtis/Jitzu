@@ -80,7 +80,7 @@ public class AstTransformerTests
 
         var ast = CreateScript(sourceCode);
         var function = ast.Body.First().ShouldBeOfType<FunctionDefinitionExpression>();
-        var scope = CreateTransformer(builder).TransformFunctionBody(function, builder);
+        var (scope, _) = CreateTransformer(builder).TransformFunctionBody(function, builder);
 
         // Local slots are independent of global slots
         function.Body[0].ShouldBeOfType<LocalSetExpression>().SlotIndex.ShouldBe(0);
@@ -143,7 +143,7 @@ public class AstTransformerTests
         globalScope["x"].ShouldBe(1);
 
         var function = ast.Body[1].ShouldBeOfType<FunctionDefinitionExpression>();
-        var scope = transformer.TransformFunctionBody(function, builder);
+        var (scope, _) = transformer.TransformFunctionBody(function, builder);
 
         function.Body[0].ShouldBeOfType<LocalSetExpression>().SlotIndex.ShouldBe(0);
         function.Body[1].ShouldBeOfType<FunctionCallExpression>().Arguments[0].ShouldBeOfType<LocalGetExpression>().SlotIndex.ShouldBe(0);
@@ -167,7 +167,7 @@ public class AstTransformerTests
 
         var ast = CreateScript(sourceCode);
         var function = ast.Body.First().ShouldBeOfType<FunctionDefinitionExpression>();
-        var scope = CreateTransformer(builder).TransformFunctionBody(function, builder);
+        var (scope, _) = CreateTransformer(builder).TransformFunctionBody(function, builder);
 
         // Parameters should be mapped first
         scope["a"].ShouldBe(0);
@@ -205,8 +205,10 @@ public class AstTransformerTests
         var outer = ast.Body[1].ShouldBeOfType<FunctionDefinitionExpression>();
         transformer.TransformFunctionBody(outer, builder);
 
-        var inner = outer.Body[0].ShouldBeOfType<FunctionDefinitionExpression>();
-        transformer.TransformFunctionBody(inner, builder);
+        // Inner function is automatically transformed by TransformFunctionBody(outer)
+        // Nested functions are wrapped in LocalSetExpression for local storage
+        var innerSet = outer.Body[0].ShouldBeOfType<LocalSetExpression>();
+        var inner = innerSet.ValueExpression.ShouldBeOfType<FunctionDefinitionExpression>();
 
         // Inner function should reference global x
         inner.Body[0].ShouldBeOfType<FunctionCallExpression>()
@@ -268,7 +270,7 @@ public class AstTransformerTests
         globalScope["x"].ShouldBe(1);
 
         var function = ast.Body[1].ShouldBeOfType<FunctionDefinitionExpression>();
-        var scope = transformer.TransformFunctionBody(function, builder);
+        var (scope, _) = transformer.TransformFunctionBody(function, builder);
 
         // First local x
         function.Body[0].ShouldBeOfType<LocalSetExpression>().SlotIndex.ShouldBe(0);
@@ -307,12 +309,12 @@ public class AstTransformerTests
         var ast = CreateScript(sourceCode);
 
         var foo = ast.Body[0].ShouldBeOfType<FunctionDefinitionExpression>();
-        var fooScope = transformer.TransformFunctionBody(foo, builder);
+        var (fooScope, _) = transformer.TransformFunctionBody(foo, builder);
         foo.Body[0].ShouldBeOfType<LocalSetExpression>().SlotIndex.ShouldBe(0);
         fooScope["x"].ShouldBe(0);
 
         var bar = ast.Body[1].ShouldBeOfType<FunctionDefinitionExpression>();
-        var barScope = transformer.TransformFunctionBody(bar, builder);
+        var (barScope, _) = transformer.TransformFunctionBody(bar, builder);
         bar.Body[0].ShouldBeOfType<LocalSetExpression>().SlotIndex.ShouldBe(0);
         barScope["x"].ShouldBe(0);
     }

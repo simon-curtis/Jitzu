@@ -42,11 +42,11 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
             EmitExpression(stmt);
 
         // Ensure there is always a return at the end.
-        // If user didn’t explicitly return, return Unit.Instance by default.
+        // If user didn't explicitly return, return Unit.Instance by default.
         if (_currentChunk.Code.Count == 0 || _currentChunk.Code[^1] != (byte)OpCode.Return)
         {
-            if (decl.FunctionReturnType == null 
-                || decl.FunctionReturnType == typeof(void) 
+            if (decl.FunctionReturnType == null
+                || decl.FunctionReturnType == typeof(void)
                 || decl.FunctionReturnType == typeof(Unit))
             {
                 // Void function: implicit return Unit
@@ -59,6 +59,22 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
         var functionChunk = _currentChunk;
         _currentChunk = parentChunk;
         return functionChunk;
+    }
+
+    private Chunk CompileLambdaBody(Expression body, SourceSpan location)
+    {
+        var parentChunk = _currentChunk;
+        _currentChunk = new Chunk();
+
+        EmitExpression(body);
+
+        // Lambda implicitly returns the value of its body expression
+        if (_currentChunk.Code.Count == 0 || _currentChunk.Code[^1] != (byte)OpCode.Return)
+            _currentChunk.Emit(OpCode.Return, location);
+
+        var lambdaChunk = _currentChunk;
+        _currentChunk = parentChunk;
+        return lambdaChunk;
     }
 
     private void EmitExpression(Expression expr)
@@ -93,6 +109,14 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                 _currentChunk.Emit(OpCode.GetLocal, expr.Location, l.SlotIndex);
                 break;
 
+            case UpvalueGetExpression u:
+                _currentChunk.Emit(OpCode.GetUpvalue, expr.Location, u.UpvalueIndex);
+                break;
+
+            case CapturedLocalGetExpression cl:
+                _currentChunk.Emit(OpCode.GetCapturedLocal, expr.Location, cl.SlotIndex);
+                break;
+
             case KeywordLiteral { Name: "self" }:
                 throw new NotImplementedException();
 
@@ -104,6 +128,16 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
             case LocalSetExpression ls:
                 EmitExpression(ls.ValueExpression);
                 _currentChunk.Emit(OpCode.SetLocal, ls.Location, ls.SlotIndex);
+                break;
+
+            case UpvalueSetExpression us:
+                EmitExpression(us.ValueExpression);
+                _currentChunk.Emit(OpCode.SetUpvalue, us.Location, us.UpvalueIndex);
+                break;
+
+            case CapturedLocalSetExpression cls:
+                EmitExpression(cls.ValueExpression);
+                _currentChunk.Emit(OpCode.SetCapturedLocal, cls.Location, cls.SlotIndex);
                 break;
 
             case FunctionCallExpression call:
@@ -184,6 +218,22 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                         break;
                     }
 
+                    case CapturedLocalGetExpression captured:
+                    {
+                        EmitExpression(inc.Subject);
+                        _currentChunk.Emit(OpCode.Inc, inc.Location);
+                        _currentChunk.Emit(OpCode.SetCapturedLocal, inc.Location, captured.SlotIndex);
+                        break;
+                    }
+
+                    case UpvalueGetExpression upvalue:
+                    {
+                        EmitExpression(inc.Subject);
+                        _currentChunk.Emit(OpCode.Inc, inc.Location);
+                        _currentChunk.Emit(OpCode.SetUpvalue, inc.Location, upvalue.UpvalueIndex);
+                        break;
+                    }
+
                     default:
                         _currentChunk.Emit(OpCode.Inc, inc.Location);
                         break;
@@ -194,8 +244,46 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
 
             case InplaceDecrementExpression dec:
             {
-                EmitExpression(dec.Subject);
-                _currentChunk.Emit(OpCode.Dec, dec.Location);
+                switch (dec.Subject)
+                {
+                    case GlobalGetExpression global:
+                    {
+                        EmitExpression(dec.Subject);
+                        _currentChunk.Emit(OpCode.Dec, dec.Location);
+                        _currentChunk.Emit(OpCode.SetGlobal, dec.Location, global.SlotIndex);
+                        break;
+                    }
+
+                    case LocalGetExpression local:
+                    {
+                        EmitExpression(dec.Subject);
+                        _currentChunk.Emit(OpCode.Dec, dec.Location);
+                        _currentChunk.Emit(OpCode.SetLocal, dec.Location, local.SlotIndex);
+                        break;
+                    }
+
+                    case CapturedLocalGetExpression captured:
+                    {
+                        EmitExpression(dec.Subject);
+                        _currentChunk.Emit(OpCode.Dec, dec.Location);
+                        _currentChunk.Emit(OpCode.SetCapturedLocal, dec.Location, captured.SlotIndex);
+                        break;
+                    }
+
+                    case UpvalueGetExpression upvalue:
+                    {
+                        EmitExpression(dec.Subject);
+                        _currentChunk.Emit(OpCode.Dec, dec.Location);
+                        _currentChunk.Emit(OpCode.SetUpvalue, dec.Location, upvalue.UpvalueIndex);
+                        break;
+                    }
+
+                    default:
+                        EmitExpression(dec.Subject);
+                        _currentChunk.Emit(OpCode.Dec, dec.Location);
+                        break;
+                }
+
                 break;
             }
 
@@ -253,6 +341,8 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                 {
                     GlobalGetExpression g => g.VariableType,
                     LocalGetExpression g => g.VariableType,
+                    CapturedLocalGetExpression g => g.VariableType,
+                    UpvalueGetExpression g => g.VariableType,
                     _ => typeof(object)
                 };
 
@@ -321,7 +411,7 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                                         _currentChunk.EmitJump(OpCode.JumpIfFalse, c.Pattern.Location, endOfCase);
                                         break;
                                     }
-                                    
+
                                     case IntLiteral e:
                                     {
                                         EmitExpression(e);
@@ -329,7 +419,7 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                                         _currentChunk.EmitJump(OpCode.JumpIfFalse, c.Pattern.Location, endOfCase);
                                         break;
                                     }
-                                    
+
                                     case DoubleLiteral e:
                                     {
                                         EmitExpression(e);
@@ -337,7 +427,7 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                                         _currentChunk.EmitJump(OpCode.JumpIfFalse, c.Pattern.Location, endOfCase);
                                         break;
                                     }
-                                    
+
                                     case CharLiteral e:
                                     {
                                         EmitExpression(e);
@@ -399,11 +489,11 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                 break;
 
             case FunctionDefinitionExpression funcDef:
-                // Compile function body to new chunk
-                var funcChunk = CompileFunction(funcDef);
-                // Look up the placeholder UserFunction in program
-                if (program.GlobalFunctions.TryGetValue(funcDef.Identifier.Name, out var f) && f is UserFunction uf)
-                    uf.Chunk = funcChunk;
+                CompileFunctionDefinition(funcDef);
+                break;
+
+            case LambdaExpression lambda:
+                CompileLambdaExpression(lambda);
                 break;
 
             case TypeDefinitionExpression typeDef:
@@ -416,6 +506,71 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
             default:
                 throw new NotSupportedException($"Unhandled AST node in bytecode compiler: {expr.GetType().Name}");
         }
+    }
+
+    private void CompileFunctionDefinition(FunctionDefinitionExpression funcDef)
+    {
+        var funcChunk = CompileFunction(funcDef);
+
+        if (funcDef.CapturedUpvalues is { } upvalues)
+        {
+            // Nested function that captures — emit as closure (pushes onto stack)
+            var uf = new UserFunction(funcDef.Identifier.Name, funcChunk)
+            {
+                LocalCount = funcDef.LocalCount,
+            };
+            var funcConstIdx = _currentChunk.AddOrGetConstant(uf);
+            EmitMakeClosure(funcConstIdx, upvalues, funcDef.Location);
+        }
+        else if (program.GlobalFunctions.TryGetValue(funcDef.Identifier.Name, out var f) && f is UserFunction uf)
+        {
+            // Global function — patch the placeholder
+            uf.Chunk = funcChunk;
+        }
+        else
+        {
+            // Nested function without captures — push as constant (for local storage)
+            var uf2 = new UserFunction(funcDef.Identifier.Name, funcChunk)
+            {
+                LocalCount = funcDef.LocalCount,
+            };
+            EmitConstant(uf2, funcDef.Location);
+        }
+    }
+
+    private void CompileLambdaExpression(LambdaExpression lambda)
+    {
+        var lambdaChunk = CompileLambdaBody(lambda.Body, lambda.Location);
+        var uf = new UserFunction("<lambda>", lambdaChunk)
+        {
+            LocalCount = lambda.LocalCount,
+        };
+
+        if (lambda.CapturedUpvalues is { } upvalues)
+        {
+            var funcConstIdx = _currentChunk.AddOrGetConstant(uf);
+            EmitMakeClosure(funcConstIdx, upvalues, lambda.Location);
+        }
+        else
+        {
+            // No captures — just push the function as a constant
+            EmitConstant(uf, lambda.Location);
+        }
+    }
+
+    private void EmitMakeClosure(int funcConstIdx, UpvalueDescriptor[] upvalues, SourceSpan location)
+    {
+        // MakeClosure format: funcConstIdx, upvalueCount, then pairs of (isLocal, index)
+        var operands = new int[2 + upvalues.Length * 2];
+        operands[0] = funcConstIdx;
+        operands[1] = upvalues.Length;
+        for (var i = 0; i < upvalues.Length; i++)
+        {
+            operands[2 + i * 2] = upvalues[i].IsLocal ? 1 : 0;
+            operands[2 + i * 2 + 1] = upvalues[i].Index;
+        }
+
+        _currentChunk.Emit(OpCode.MakeClosure, location, operands);
     }
 
     private void CompileTypeDefExpression(TypeDefinitionExpression typeDef)
@@ -483,6 +638,20 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                 }
 
                 EmitConstant(function, call.Location);
+                break;
+            }
+
+            case null:
+            {
+                // Dynamic call — callee is a closure/function stored in a variable
+                foreach (var arg in call.Arguments)
+                {
+                    EmitExpression(arg);
+                    argCount++;
+                }
+
+                // Emit the callee expression (loads the closure/function onto stack)
+                EmitExpression(call.Identifier);
                 break;
             }
         }

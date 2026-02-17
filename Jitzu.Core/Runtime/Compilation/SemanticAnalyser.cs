@@ -203,6 +203,27 @@ public class SemanticAnalyser(RuntimeProgram program)
                 return simpleMemberAccessExpression;
             }
 
+            case LambdaExpression lambda:
+                return AnalyseLambdaExpression(lambda);
+
+            case LocalSetExpression localSet:
+            {
+                localSet = localSet with { ValueExpression = AnalyseExpression(localSet.ValueExpression) };
+                return localSet;
+            }
+
+            case UpvalueSetExpression upvalueSet:
+            {
+                upvalueSet = upvalueSet with { ValueExpression = AnalyseExpression(upvalueSet.ValueExpression) };
+                return upvalueSet;
+            }
+
+            case CapturedLocalSetExpression capturedSet:
+            {
+                capturedSet = capturedSet with { ValueExpression = AnalyseExpression(capturedSet.ValueExpression) };
+                return capturedSet;
+            }
+
             default:
                 return expr;
         }
@@ -272,9 +293,20 @@ public class SemanticAnalyser(RuntimeProgram program)
                 return localGet;
             }
 
+            case UpvalueGetExpression upvalueGet:
+                return upvalueGet;
+
+            case CapturedLocalGetExpression capturedGet:
+                return capturedGet;
+
             default:
                 return identifierLiteral;
         }
+    }
+
+    private LambdaExpression AnalyseLambdaExpression(LambdaExpression lambda)
+    {
+        return lambda with { Body = AnalyseExpression(lambda.Body) };
     }
 
     private WhileExpression AnalyseWhileExpression(WhileExpression whileExpression)
@@ -372,6 +404,12 @@ public class SemanticAnalyser(RuntimeProgram program)
                         ? $"Cannot find function '{methodName}' on '{targetType.Name}'"
                         : $"Cannot find function '{methodName}' on '{targetType.Name}' with argument types: {args}");
             }
+
+            case LocalGetExpression:
+            case UpvalueGetExpression:
+            case CapturedLocalGetExpression:
+                // Dynamic call — closure stored in a variable
+                return call;
 
             default:
                 // Collect argument types

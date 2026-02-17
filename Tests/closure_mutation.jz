@@ -1,0 +1,13 @@
+// Test: Mutation through closure is visible in outer scope
+fun test(): Int {
+    let mut count = 0
+    fun increment(n: Int) {
+        count = count + n
+    }
+    increment(5)
+    increment(3)
+    return count
+}
+
+print(test())
+// Expected output: 8

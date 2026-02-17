@@ -1,0 +1,11 @@
+// Test: Nested named function captures outer variable
+fun make_adder(x: Int): Int {
+    fun add(y: Int): Int {
+        return x + y
+    }
+    return add(10)
+}
+
+let result = make_adder(5)
+print(result)
+// Expected output: 15

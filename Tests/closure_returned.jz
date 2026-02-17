@@ -1,0 +1,14 @@
+// Test: Nested function captures and mutates outer variable
+fun test(): Int {
+    let mut total = 0
+    fun add(n: Int): Int {
+        total = total + n
+        return total
+    }
+    add(10)
+    add(20)
+    return total
+}
+
+print(test())
+// Expected output: 30

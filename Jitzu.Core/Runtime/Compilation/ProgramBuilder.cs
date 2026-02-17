@@ -156,7 +156,7 @@ public static class ProgramBuilder
         AstTransformer transformer,
         Type? parentType = null)
     {
-        var slotMap = transformer.TransformFunctionBody(funcDef, globalSlotBuilder);
+        var (slotMap, _) = transformer.TransformFunctionBody(funcDef, globalSlotBuilder);
         return new UserFunction(funcDef.Identifier.Name, null!) // placeholder, no bytecode yet
         {
             ParentType = parentType,

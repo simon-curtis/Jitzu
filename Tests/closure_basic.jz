@@ -1,0 +1,10 @@
+// Test: Nested function captures a variable from enclosing scope and reads it
+fun make_adder(x: Int): Int {
+    fun add(y: Int): Int {
+        return x + y
+    }
+    return add(5)
+}
+
+print(make_adder(10))
+// Expected output: 15

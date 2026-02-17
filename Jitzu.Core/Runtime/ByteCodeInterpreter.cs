@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -15,6 +15,7 @@ public ref struct ByteCodeInterpreter
     private CallFrame[] _frames = new CallFrame[64];
     private int _frameTop = -1;
     private UserFunction _currentFunction;
+    private Closure? _currentClosure;
     private readonly bool _dumpStack;
     private Span<byte> _instructions;
 
@@ -80,7 +81,6 @@ public ref struct ByteCodeInterpreter
             {
                 DumpStack();
 
-                // Console.WriteLine($"IP={_ip}, OpCode={instructions[_ip]} ({(OpCode)instructions[_ip]})");
                 lastIp = _ip; // Needed for keep a reference to the right DebugSpan
                 var op = _instructions[_ip++];
                 switch ((OpCode)op)
@@ -303,6 +303,36 @@ public ref struct ByteCodeInterpreter
                         break;
                     }
 
+                    case OpCode.GetUpvalue:
+                    {
+                        ExecuteGetUpvalue();
+                        break;
+                    }
+
+                    case OpCode.SetUpvalue:
+                    {
+                        ExecuteSetUpvalue();
+                        break;
+                    }
+
+                    case OpCode.GetCapturedLocal:
+                    {
+                        ExecuteGetCapturedLocal();
+                        break;
+                    }
+
+                    case OpCode.SetCapturedLocal:
+                    {
+                        ExecuteSetCapturedLocal();
+                        break;
+                    }
+
+                    case OpCode.MakeClosure:
+                    {
+                        ExecuteMakeClosure();
+                        break;
+                    }
+
                     case var other:
                         throw new ArgumentOutOfRangeException(other.ToString());
                 }
@@ -373,7 +403,6 @@ public ref struct ByteCodeInterpreter
     {
         var localIdx = ReadInt();
         var local = _programStack.GetLocal(localIdx);
-        // Console.WriteLine($"GetLocal({localIdx}) = {local} (SP={_programStack.StackPointer})");
         _programStack.Push(local);
     }
 
@@ -388,6 +417,83 @@ public ref struct ByteCodeInterpreter
         var globalIdx = ReadInt();
         var global = _programStack.GetGlobal(globalIdx);
         _programStack.Push(global);
+    }
+
+    private void ExecuteGetUpvalue()
+    {
+        var idx = ReadInt();
+        _programStack.Push(_currentClosure!.Upvalues[idx].Value);
+    }
+
+    private void ExecuteSetUpvalue()
+    {
+        var idx = ReadInt();
+        _currentClosure!.Upvalues[idx].Value = _programStack.Pop();
+    }
+
+    private void ExecuteGetCapturedLocal()
+    {
+        var slot = ReadInt();
+        var localVal = _programStack.GetLocal(slot);
+        if (localVal.Ref is UpvalueCell cell)
+            _programStack.Push(cell.Value);
+        else
+            _programStack.Push(localVal);
+    }
+
+    private void ExecuteSetCapturedLocal()
+    {
+        var slot = ReadInt();
+        var value = _programStack.Pop();
+        var localVal = _programStack.GetLocal(slot);
+        if (localVal.Ref is UpvalueCell cell)
+        {
+            cell.Value = value;
+        }
+        else
+        {
+            // First write — create the cell
+            var newCell = new UpvalueCell { Value = value };
+            _programStack.SetLocal(slot, Value.FromRef(newCell));
+        }
+    }
+
+    private void ExecuteMakeClosure()
+    {
+        var funcConstIdx = ReadInt();
+        var upvalueCount = ReadInt();
+        var function = (UserFunction)_currentFunction.Chunk.Constants[funcConstIdx];
+        var upvalues = new UpvalueCell[upvalueCount];
+
+        for (var i = 0; i < upvalueCount; i++)
+        {
+            var isLocal = ReadInt() == 1;
+            var index = ReadInt();
+
+            if (isLocal)
+            {
+                // Capture from enclosing function's local slot
+                var localVal = _programStack.GetLocal(index);
+                if (localVal.Ref is UpvalueCell existingCell)
+                {
+                    upvalues[i] = existingCell;
+                }
+                else
+                {
+                    // Create a new cell and replace the local slot
+                    var cell = new UpvalueCell { Value = localVal };
+                    _programStack.SetLocal(index, Value.FromRef(cell));
+                    upvalues[i] = cell;
+                }
+            }
+            else
+            {
+                // Share from current closure's upvalues (transitive capture)
+                upvalues[i] = _currentClosure!.Upvalues[index];
+            }
+        }
+
+        _programStack.Push(Value.FromRef(new Closure(function, upvalues)));
     }
 
     private void Construct()
@@ -448,24 +554,43 @@ public ref struct ByteCodeInterpreter
                 break;
             }
 
+            case Closure closure:
+            {
+                // Save current frame state (including current closure)
+                var frame = new CallFrame(
+                    _currentFunction, returnIp, _programStack.StackPointer, _programStack.FrameBase, _currentClosure);
+                PushFrame(frame);
+
+                // Set up new function
+                _currentFunction = closure.Function;
+                _currentClosure = closure;
+                _ip = 0;
+                _instructions = CollectionsMarshal.AsSpan(closure.Function.Chunk.Code);
+
+                // Create new frame
+                _programStack.PushFrame(closure.Function.LocalCount);
+
+                for (int j = 0; j < args.Length; j++)
+                    _programStack.SetLocal(j, args[j]);
+
+                break;
+            }
+
             case UserFunction uf:
             {
-                // Console.WriteLine($"CALL fib with {args[0]}");
-                // Console.WriteLine($"  Before call: SP={_programStack.StackPointer}, FB={_programStack.FrameBase}");
-
                 // Save current frame state
                 var frame = new CallFrame(
-                    _currentFunction, returnIp, _programStack.StackPointer, _programStack.FrameBase);
+                    _currentFunction, returnIp, _programStack.StackPointer, _programStack.FrameBase, _currentClosure);
                 PushFrame(frame);
 
                 // Set up new function
                 _currentFunction = uf;
+                _currentClosure = null;
                 _ip = 0;
                 _instructions = CollectionsMarshal.AsSpan(uf.Chunk.Code);
 
                 // Create new frame
                 _programStack.PushFrame(uf.LocalCount);
-                // Console.WriteLine($"  After PushFrame: SP={_programStack.StackPointer}, FB={_programStack.FrameBase}");
 
                 for (int j = 0; j < args.Length; j++)
                     _programStack.SetLocal(j, args[j]);
@@ -487,18 +612,17 @@ public ref struct ByteCodeInterpreter
         }
 
         returnValue = _programStack.Pop();
-        // Console.WriteLine($"RETURN {returnValue}");
 
         if (_frameTop < 0)
             return true;
 
         var caller = PopFrame();
-        // Console.WriteLine($"  Restoring to: SP={caller.StackPointer}, FB={caller.FrameBase}");
 
         // Restore caller frame
         _programStack.SetPointer(caller.StackPointer);
         _programStack.SetFrameBase(caller.FrameBase);
         _currentFunction = caller.UserFunction;
+        _currentClosure = caller.Closure;
         _ip = caller.IP;
         _instructions = CollectionsMarshal.AsSpan(_currentFunction.Chunk.Code);
 
@@ -518,15 +642,9 @@ public ref struct ByteCodeInterpreter
     {
         int addr = ReadInt();
         var cond = _programStack.Pop();
-        // Console.WriteLine($"JumpIfFalse: cond={cond}, addr={addr}, currentIP={_ip}, willJump={!IsTrue(cond)}");
         if (!IsTrue(cond))
         {
-            // Console.WriteLine($"Jumping to {addr}");
             _ip = addr;
-        }
-        else
-        {
-            // Console.WriteLine($"Not jumping, next instruction at IP {_ip}");
         }
     }
 
@@ -573,7 +691,6 @@ public ref struct ByteCodeInterpreter
     {
         var right = _programStack.Pop();
         var left = _programStack.Pop();
-        // Console.WriteLine($"ADD: left={left} right={right}");
         var res = BinaryExpressionEvaluator.Add(left, right);
         _programStack.Push(res);
     }
@@ -582,7 +699,6 @@ public ref struct ByteCodeInterpreter
     {
         var right = _programStack.Pop();
         var left = _programStack.Pop();
-        // Console.WriteLine($"SUB: left={left} right={right}");
         var res = BinaryExpressionEvaluator.Sub(left, right);
         _programStack.Push(res);
     }
@@ -623,9 +739,7 @@ public ref struct ByteCodeInterpreter
     {
         var right = _programStack.Pop();
         var left = _programStack.Pop();
-        // Console.WriteLine($"LTE: left={left} ({left.GetType().Name}) right={right} ({right.GetType().Name})");
         var res = BinaryExpressionEvaluator.LessThanOrEqual(left, right);
-        // Console.WriteLine($"LTE result: {res}");
         _programStack.Push(res);
     }
 
@@ -815,7 +929,7 @@ public ref struct ByteCodeInterpreter
         }
     }
 
-    // TODO: Handle missing indexer 
+    // TODO: Handle missing indexer
     private static PropertyInfo? GetIndexer(Type subjectType, Type indexerType)
     {
         return subjectType.GetProperty("Item", BindingFlags.Public | BindingFlags.Instance);

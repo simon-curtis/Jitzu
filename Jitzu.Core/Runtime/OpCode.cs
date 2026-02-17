@@ -44,4 +44,9 @@ public enum OpCode : byte
     Swap,
     UnwrapUnion,
     BitwiseOr,
+    GetUpvalue,
+    SetUpvalue,
+    GetCapturedLocal,
+    SetCapturedLocal,
+    MakeClosure,
 }

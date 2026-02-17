@@ -74,6 +74,8 @@ public record FunctionDefinitionExpression : Expression
     public Expression? ReturnType { get; set; }
     public required Expression[] Body { get; init; }
     public Type? FunctionReturnType { get; set; }
+    public UpvalueDescriptor[]? CapturedUpvalues { get; set; }
+    public int LocalCount { get; set; }
 }
 
 public record FunctionParametersExpression : Expression
@@ -585,6 +587,8 @@ public record LambdaExpression : Expression
 {
     public required Expression[] Parameters { get; init; }
     public required Expression Body { get; init; }
+    public UpvalueDescriptor[]? CapturedUpvalues { get; set; }
+    public int LocalCount { get; set; }
 }
 
 public record GlobalGetExpression(IIdentifierLiteral Identifier) : IIdentifierLiteral
@@ -638,3 +642,45 @@ public record LocalSetExpression : Expression
         return $"local[{SlotIndex}] ({Identifier?.ToString()})  = {ValueExpression.ToString()}";
     }
 }
+
+public record UpvalueGetExpression(IIdentifierLiteral Identifier) : IIdentifierLiteral
+{
+    public required int UpvalueIndex { get; init; }
+    public override string Name { get; init; } = Identifier.Name;
+    public Type? VariableType { get; set; }
+    public override string ToString() => $"upvalue[{UpvalueIndex}] ({Identifier.Name})";
+}
+
+public record UpvalueSetExpression : Expression
+{
+    public required int UpvalueIndex { get; init; }
+    public required Expression ValueExpression { get; init; }
+    public required IIdentifierLiteral? Identifier { get; init; }
+
+    public override string ToString()
+    {
+        return $"upvalue[{UpvalueIndex}] ({Identifier?.ToString()}) = {ValueExpression.ToString()}";
+    }
+}
+
+public record CapturedLocalGetExpression(IIdentifierLiteral Identifier) : IIdentifierLiteral
+{
+    public required int SlotIndex { get; init; }
+    public override string Name { get; init; } = Identifier.Name;
+    public Type? VariableType { get; set; }
+    public override string ToString() => $"captured_local[{SlotIndex}] ({Identifier.Name})";
+}
+
+public record CapturedLocalSetExpression : Expression
+{
+    public required int SlotIndex { get; init; }
+    public required Expression ValueExpression { get; init; }
+    public required IIdentifierLiteral? Identifier { get; init; }
+
+    public override string ToString()
+    {
+        return $"captured_local[{SlotIndex}] ({Identifier?.ToString()}) = {ValueExpression.ToString()}";
+    }
+}
+
+public readonly record struct UpvalueDescriptor(bool IsLocal, int Index, string Name);

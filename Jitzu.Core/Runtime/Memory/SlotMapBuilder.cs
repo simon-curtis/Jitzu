@@ -1,4 +1,4 @@
-﻿using Jitzu.Core.Language;
+using Jitzu.Core.Language;
 
 namespace Jitzu.Core.Runtime.Memory;
 
@@ -9,6 +9,18 @@ public class SlotMapBuilder(SlotMapBuilder? parentBuilder, LocalKind localKind)
     private Dictionary<string, int>[] _scopes = new Dictionary<string, int>[32];
     private int _scopeIndex = -1;
     private int _slotIndex;
+    private readonly List<UpvalueDescriptor> _upvalues = [];
+    private readonly Dictionary<string, int> _upvalueIndexByName = new();
+
+    /// <summary>
+    /// Slots in this builder that are captured by inner functions/lambdas.
+    /// </summary>
+    public HashSet<int> CapturedSlots { get; } = [];
+
+    /// <summary>
+    /// The upvalue descriptors for this function/lambda scope.
+    /// </summary>
+    public UpvalueDescriptor[] Upvalues => _upvalues.ToArray();
 
     /// <summary>
     /// Push a new lexical scope (block or function body).
@@ -57,25 +69,48 @@ public class SlotMapBuilder(SlotMapBuilder? parentBuilder, LocalKind localKind)
         // Search current function's scopes
         for (var index = _scopeIndex; index >= 0; index--)
         {
-            if (!_scopes[index].TryGetValue(name, out var slot)) 
+            if (!_scopes[index].TryGetValue(name, out var slot))
                 continue;
 
             local = new Local(localKind, slot);
             return true;
         }
 
-        // Search enclosing functions
+        // Search enclosing functions — capture as upvalue
         if (parentBuilder != null)
         {
             if (parentBuilder.TryGetLocal(name, out var enclosingLocal))
             {
-                local = enclosingLocal.LocalKind is LocalKind.Local
-                    ? enclosingLocal with
-                    {
-                        LocalKind = LocalKind.Upvalue,
-                    }
-                    : enclosingLocal;
+                // Only capture if it's a local or upvalue in the parent (not global)
+                if (enclosingLocal.LocalKind is LocalKind.Global)
+                {
+                    local = enclosingLocal;
+                    return true;
+                }
 
+                // Deduplicate upvalues by name
+                if (_upvalueIndexByName.TryGetValue(name, out var existingIdx))
+                {
+                    local = new Local(LocalKind.Upvalue, existingIdx);
+                    return true;
+                }
+
+                var upvalueIndex = _upvalues.Count;
+
+                if (enclosingLocal.LocalKind is LocalKind.Local)
+                {
+                    // Direct capture from parent's local slot
+                    parentBuilder.CapturedSlots.Add(enclosingLocal.SlotIndex);
+                    _upvalues.Add(new UpvalueDescriptor(IsLocal: true, enclosingLocal.SlotIndex, name));
+                }
+                else
+                {
+                    // Transitive capture — parent already has it as an upvalue
+                    _upvalues.Add(new UpvalueDescriptor(IsLocal: false, enclosingLocal.SlotIndex, name));
+                }
+
+                _upvalueIndexByName[name] = upvalueIndex;
+                local = new Local(LocalKind.Upvalue, upvalueIndex);
                 return true;
             }
         }

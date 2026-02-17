@@ -9,6 +9,8 @@ namespace Jitzu.Core.Runtime.Compilation;
 /// </summary>
 public class AstTransformer(RuntimeProgram program)
 {
+    private bool _insideFunction;
+
     public void TransformScriptExpression(
         ScriptExpression expression,
         SlotMapBuilder slotMapBuilder)
@@ -18,10 +20,13 @@ public class AstTransformer(RuntimeProgram program)
             expression.Body[i] = TransformExpression(expression.Body[i], slotMapBuilder);
     }
 
-    public Dictionary<string, int> TransformFunctionBody(
+    public (Dictionary<string, int> SlotMap, SlotMapBuilder ScopedSlotMap) TransformFunctionBody(
         FunctionDefinitionExpression fun,
         SlotMapBuilder? slotMapBuilder)
     {
+        var wasInsideFunction = _insideFunction;
+        _insideFunction = true;
+
         var scopedSlotMap = new SlotMapBuilder(slotMapBuilder, LocalKind.Local);
         var slotMap = scopedSlotMap.PushScope();
 
@@ -35,7 +40,22 @@ public class AstTransformer(RuntimeProgram program)
         for (int i = 0; i < fun.Body.Length; i++)
             fun.Body[i] = TransformExpression(fun.Body[i], scopedSlotMap);
 
-        return slotMap;
+        // Post-pass: replace LocalGet/Set with CapturedLocalGet/Set for captured slots
+        if (scopedSlotMap.CapturedSlots.Count > 0)
+        {
+            for (int i = 0; i < fun.Body.Length; i++)
+                fun.Body[i] = RewriteCapturedLocals(fun.Body[i], scopedSlotMap.CapturedSlots);
+        }
+
+        // Attach upvalue descriptors if any inner scope captures from this function
+        var upvalues = scopedSlotMap.Upvalues;
+        if (upvalues.Length > 0)
+            fun.CapturedUpvalues = upvalues;
+
+        fun.LocalCount = scopedSlotMap.LocalCount;
+
+        _insideFunction = wasInsideFunction;
+        return (slotMap, scopedSlotMap);
     }
 
     /// <summary>
@@ -69,6 +89,8 @@ public class AstTransformer(RuntimeProgram program)
             InplaceIncrementExpression e => TransformInplaceIncrementExpression(e, slotMapBuilder),
             InplaceDecrementExpression e => TransformInplaceDecrementExpression(e, slotMapBuilder),
             VariantExpression e => TransformVariantExpression(e, slotMapBuilder),
+            LambdaExpression e => TransformLambdaExpression(e, slotMapBuilder),
+            FunctionDefinitionExpression e when _insideFunction => TransformNestedFunctionDefinition(e, slotMapBuilder),
             IIdentifierLiteral e => TransformIdentifierExpression(e, slotMapBuilder),
             _ => expr,
         };
@@ -104,6 +126,11 @@ public class AstTransformer(RuntimeProgram program)
             LocalKind.Global => new GlobalGetExpression(identifier)
             {
                 SlotIndex = local.SlotIndex,
+                Location = identifier.Location,
+            },
+            LocalKind.Upvalue => new UpvalueGetExpression(identifier)
+            {
+                UpvalueIndex = local.SlotIndex,
                 Location = identifier.Location,
             },
             _ => throw new ArgumentOutOfRangeException()
@@ -143,6 +170,13 @@ public class AstTransformer(RuntimeProgram program)
                 ValueExpression = TransformExpression(value, slotMapBuilder),
                 Location = identifierLiteral.Location,
             },
+            LocalKind.Upvalue => new UpvalueSetExpression
+            {
+                UpvalueIndex = local.SlotIndex,
+                ValueExpression = TransformExpression(value, slotMapBuilder),
+                Location = identifierLiteral.Location,
+                Identifier = identifierLiteral,
+            },
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -170,6 +204,13 @@ public class AstTransformer(RuntimeProgram program)
                     SlotIndex = local.SlotIndex,
                     ValueExpression = TransformExpression(assignExpr.Right, slotMapBuilder),
                     Location = assignExpr.Location,
+                },
+                LocalKind.Upvalue => new UpvalueSetExpression
+                {
+                    UpvalueIndex = local.SlotIndex,
+                    ValueExpression = TransformExpression(assignExpr.Right, slotMapBuilder),
+                    Location = assignExpr.Location,
+                    Identifier = ident,
                 },
                 _ => throw new ArgumentOutOfRangeException()
             };
@@ -210,6 +251,11 @@ public class AstTransformer(RuntimeProgram program)
             LocalKind.Global => new GlobalGetExpression(ident)
             {
                 SlotIndex = local.SlotIndex,
+                Location = ident.Location,
+            },
+            LocalKind.Upvalue => new UpvalueGetExpression(ident)
+            {
+                UpvalueIndex = local.SlotIndex,
                 Location = ident.Location,
             },
             _ => throw new ArgumentOutOfRangeException()
@@ -419,7 +465,7 @@ public class AstTransformer(RuntimeProgram program)
 
     private ForExpression TransformForExpression(ForExpression expression, SlotMapBuilder slotMapBuilder)
     {
-        // After we have added the local, we dont need to change anything about the identifier 
+        // After we have added the local, we dont need to change anything about the identifier
         slotMapBuilder.Add(expression.Identifier.Name);
         expression.Range = TransformExpression(expression.Range, slotMapBuilder);
         expression.Body = TransformBlockBody(expression.Body, slotMapBuilder);
@@ -503,5 +549,230 @@ public class AstTransformer(RuntimeProgram program)
         }
 
         return variantExpression;
+    }
+
+    private Expression TransformLambdaExpression(
+        LambdaExpression lambda,
+        SlotMapBuilder slotMapBuilder)
+    {
+        var scopedSlotMap = new SlotMapBuilder(slotMapBuilder, LocalKind.Local);
+        scopedSlotMap.PushScope();
+
+        // Reserve slots for parameters
+        foreach (var param in lambda.Parameters)
+        {
+            if (param is IdentifierLiteral ident)
+                scopedSlotMap.Add(ident.Name);
+        }
+
+        // Transform body
+        lambda = lambda with { Body = TransformExpression(lambda.Body, scopedSlotMap) };
+
+        // Post-pass for captured locals
+        if (scopedSlotMap.CapturedSlots.Count > 0)
+            lambda = lambda with { Body = RewriteCapturedLocals(lambda.Body, scopedSlotMap.CapturedSlots) };
+
+        lambda.LocalCount = scopedSlotMap.LocalCount;
+
+        var upvalues = scopedSlotMap.Upvalues;
+        if (upvalues.Length > 0)
+            lambda.CapturedUpvalues = upvalues;
+
+        return lambda;
+    }
+
+    private Expression TransformNestedFunctionDefinition(
+        FunctionDefinitionExpression funcDef,
+        SlotMapBuilder slotMapBuilder)
+    {
+        // Allocate a local slot for the nested function so it can be called by name
+        var local = slotMapBuilder.Add(funcDef.Identifier.Name);
+
+        // TransformFunctionBody handles attaching CapturedUpvalues to funcDef
+        TransformFunctionBody(funcDef, slotMapBuilder);
+
+        // Wrap the function definition in a local set so it can be referenced
+        return new LocalSetExpression
+        {
+            SlotIndex = local.SlotIndex,
+            ValueExpression = funcDef,
+            Location = funcDef.Location,
+            Identifier = funcDef.Identifier,
+        };
+    }
+
+    /// <summary>
+    /// Post-pass: replace LocalGetExpression/LocalSetExpression with CapturedLocal variants
+    /// for slots that are captured by inner closures.
+    /// </summary>
+    private static Expression RewriteCapturedLocals(Expression expr, HashSet<int> capturedSlots)
+    {
+        return expr switch
+        {
+            LocalGetExpression lg when capturedSlots.Contains(lg.SlotIndex) =>
+                new CapturedLocalGetExpression(lg.Identifier)
+                {
+                    SlotIndex = lg.SlotIndex,
+                    Location = lg.Location,
+                    VariableType = lg.VariableType,
+                },
+            LocalSetExpression ls when capturedSlots.Contains(ls.SlotIndex) =>
+                new CapturedLocalSetExpression
+                {
+                    SlotIndex = ls.SlotIndex,
+                    ValueExpression = RewriteCapturedLocals(ls.ValueExpression, capturedSlots),
+                    Location = ls.Location,
+                    Identifier = ls.Identifier,
+                },
+            // Recurse into compound expressions
+            BlockBodyExpression bb => RewriteBlockBody(bb, capturedSlots),
+            IfExpression ie => RewriteIf(ie, capturedSlots),
+            WhileExpression we => RewriteWhile(we, capturedSlots),
+            ForExpression fe => RewriteFor(fe, capturedSlots),
+            BinaryExpression be => be with
+            {
+                Left = RewriteCapturedLocals(be.Left, capturedSlots),
+                Right = RewriteCapturedLocals(be.Right, capturedSlots),
+            },
+            FunctionCallExpression fce => RewriteFunctionCall(fce, capturedSlots),
+            ReturnExpression re => re with
+            {
+                ReturnValue = re.ReturnValue != null ? RewriteCapturedLocals(re.ReturnValue, capturedSlots) : null,
+            },
+            InplaceIncrementExpression inc => inc with
+            {
+                Subject = RewriteCapturedLocals(inc.Subject, capturedSlots),
+            },
+            InplaceDecrementExpression dec => dec with
+            {
+                Subject = RewriteCapturedLocals(dec.Subject, capturedSlots),
+            },
+            InterpolatedStringExpression ise => RewriteInterpolatedString(ise, capturedSlots),
+            IndexerExpression idx => idx with
+            {
+                Identifier = RewriteCapturedLocals(idx.Identifier, capturedSlots),
+                Index = RewriteCapturedLocals(idx.Index, capturedSlots),
+            },
+            TryExpression te => te with { Body = RewriteCapturedLocals(te.Body, capturedSlots) },
+            RangeExpression re => re with
+            {
+                Left = re.Left != null ? RewriteCapturedLocals(re.Left, capturedSlots) : null,
+                Right = re.Right != null ? RewriteCapturedLocals(re.Right, capturedSlots) : null,
+            },
+            AssignmentExpression ae => ae with
+            {
+                Left = RewriteCapturedLocals(ae.Left, capturedSlots),
+                Right = RewriteCapturedLocals(ae.Right, capturedSlots),
+            },
+            GlobalSetExpression gs => gs with
+            {
+                ValueExpression = RewriteCapturedLocals(gs.ValueExpression, capturedSlots),
+            },
+            UpvalueSetExpression us => us with
+            {
+                ValueExpression = RewriteCapturedLocals(us.ValueExpression, capturedSlots),
+            },
+            SimpleMemberAccessExpression sma => sma with
+            {
+                Object = RewriteCapturedLocals(sma.Object, capturedSlots),
+            },
+            MatchExpression me => RewriteMatch(me, capturedSlots),
+            ObjectInstantiationExpression oi => oi with
+            {
+                Body = (NewDynamicExpression)RewriteCapturedLocals(oi.Body, capturedSlots),
+            },
+            NewDynamicExpression nde => RewriteNewDynamic(nde, capturedSlots),
+            VariantExpression ve => RewriteVariant(ve, capturedSlots),
+            ConstantExpression ce => ce with
+            {
+                Expression = RewriteCapturedLocals(ce.Expression, capturedSlots),
+            },
+            // Don't recurse into nested functions/lambdas — they have their own scope
+            LambdaExpression => expr,
+            FunctionDefinitionExpression => expr,
+            // Leaf nodes (literals, identifiers without captured slots, discards, etc.)
+            _ => expr,
+        };
+    }
+
+    private static BlockBodyExpression RewriteBlockBody(BlockBodyExpression bb, HashSet<int> capturedSlots)
+    {
+        for (var i = 0; i < bb.Expressions.Length; i++)
+            bb.Expressions[i] = RewriteCapturedLocals(bb.Expressions[i], capturedSlots);
+        return bb;
+    }
+
+    private static IfExpression RewriteIf(IfExpression ie, HashSet<int> capturedSlots)
+    {
+        ie.Condition = RewriteCapturedLocals(ie.Condition, capturedSlots);
+        ie.Then = RewriteCapturedLocals(ie.Then, capturedSlots);
+        if (ie.Else != null)
+            ie.Else = RewriteCapturedLocals(ie.Else, capturedSlots);
+        return ie;
+    }
+
+    private static WhileExpression RewriteWhile(WhileExpression we, HashSet<int> capturedSlots)
+    {
+        we.Condition = RewriteCapturedLocals(we.Condition, capturedSlots);
+        for (var i = 0; i < we.Body.Length; i++)
+            we.Body[i] = RewriteCapturedLocals(we.Body[i], capturedSlots);
+        return we;
+    }
+
+    private static ForExpression RewriteFor(ForExpression fe, HashSet<int> capturedSlots)
+    {
+        fe.Range = RewriteCapturedLocals(fe.Range, capturedSlots);
+        fe.Body = RewriteBlockBody(fe.Body, capturedSlots);
+        return fe;
+    }
+
+    private static FunctionCallExpression RewriteFunctionCall(FunctionCallExpression fce, HashSet<int> capturedSlots)
+    {
+        fce.Identifier = RewriteCapturedLocals(fce.Identifier, capturedSlots);
+        for (var i = 0; i < fce.Arguments.Length; i++)
+            fce.Arguments[i] = RewriteCapturedLocals(fce.Arguments[i], capturedSlots);
+        return fce;
+    }
+
+    private static InterpolatedStringExpression RewriteInterpolatedString(InterpolatedStringExpression ise, HashSet<int> capturedSlots)
+    {
+        foreach (var part in ise.Parts)
+            part.Expression = RewriteCapturedLocals(part.Expression, capturedSlots);
+        return ise;
+    }
+
+    private static MatchExpression RewriteMatch(MatchExpression me, HashSet<int> capturedSlots)
+    {
+        me.Expression = RewriteCapturedLocals(me.Expression, capturedSlots);
+        foreach (var c in me.Cases)
+        {
+            c.Pattern = RewriteCapturedLocals(c.Pattern, capturedSlots);
+            c.Body = RewriteCapturedLocals(c.Body, capturedSlots);
+        }
+        return me;
+    }
+
+    private static NewDynamicExpression RewriteNewDynamic(NewDynamicExpression nde, HashSet<int> capturedSlots)
+    {
+        foreach (var field in nde.Fields)
+        {
+            if (field.Value != null)
+                field.Value = RewriteCapturedLocals(field.Value, capturedSlots);
+            else
+                field.Identifier = (IIdentifierLiteral)RewriteCapturedLocals(field.Identifier, capturedSlots);
+        }
+        return nde;
+    }
+
+    private static VariantExpression RewriteVariant(VariantExpression ve, HashSet<int> capturedSlots)
+    {
+        ve.Identifier = (IIdentifierLiteral)RewriteCapturedLocals(ve.Identifier, capturedSlots);
+        if (ve.PositionalPattern != null)
+        {
+            var parts = ve.PositionalPattern.Parts;
+            for (var i = 0; i < parts.Length; i++)
+                parts[i] = RewriteCapturedLocals(parts[i], capturedSlots);
+        }
+        return ve;
     }
 }
