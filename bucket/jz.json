@@ -1,9 +1,9 @@
 {
-  "version": "0.2.0",
+  "version": "0.1.5",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/simon-curtis/Jitzu/releases/download/v0.2.0/jitzu-0.2.0-win-x64.zip",
-      "hash": ""
+      "url": "https://github.com/simon-curtis/Jitzu/releases/download/v0.1.5/jitzu-0.1.5-win-x64.zip",
+      "hash": "ecd61a5f74c66926c81972267d278ad677c01d78dd2a55315a9160d81121eddc"
     }
   },
   "bin": "jz.exe",
