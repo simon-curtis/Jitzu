@@ -9,9 +9,9 @@
 <div align="center">
   <a href="https://jitzu.dev/docs">Documentation</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/simon-curtis/jitzu/releases">Downloads</a>
+  <a href="https://github.com/jitzulang/jitzu/releases">Downloads</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/simon-curtis/jitzu/issues/new">Issues</a>
+  <a href="https://github.com/jitzulang/jitzu/issues/new">Issues</a>
   <br />
 </div>
 
@@ -31,13 +31,13 @@ Jitzu is a lightweight, expressive scripting language that runs on the .NET runt
 
 ```sh
 # Windows (Scoop)
-scoop bucket add jitzu https://github.com/simon-curtis/Jitzu
+scoop bucket add jitzu https://github.com/jitzulang/jitzu
 scoop install jz
 ```
 
 ### Manual Download
 
-Download pre-built binaries from the [releases page](https://github.com/simon-curtis/jitzu/releases):
+Download pre-built binaries from the [releases page](https://github.com/jitzulang/jitzu/releases):
 
 | Platform | Download |
 |----------|----------|

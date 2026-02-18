@@ -142,7 +142,7 @@ jobs:
 
             ```bash
             # Windows (Scoop)
-            scoop bucket add jitzu https://github.com/simon-curtis/Jitzu
+            scoop bucket add jitzu https://github.com/jitzulang/jitzu
             scoop install jz
             ```
         env:
@@ -187,18 +187,18 @@ jobs:
             "version": "${VERSION}",
             "architecture": {
               "64bit": {
-                "url": "https://github.com/simon-curtis/Jitzu/releases/download/v${VERSION}/jitzu-${VERSION}-win-x64.zip",
+                "url": "https://github.com/jitzulang/jitzu/releases/download/v${VERSION}/jitzu-${VERSION}-win-x64.zip",
                 "hash": "${HASH}"
               }
             },
             "bin": "jz.exe",
             "checkver": {
-              "github": "https://github.com/simon-curtis/Jitzu"
+              "github": "https://github.com/jitzulang/jitzu"
             },
             "autoupdate": {
               "architecture": {
                 "64bit": {
-                  "url": "https://github.com/simon-curtis/Jitzu/releases/download/v\$version/jitzu-\$version-win-x64.zip"
+                  "url": "https://github.com/jitzulang/jitzu/releases/download/v\$version/jitzu-\$version-win-x64.zip"
                 }
               }
             }

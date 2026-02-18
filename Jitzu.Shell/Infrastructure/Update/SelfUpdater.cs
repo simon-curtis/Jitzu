@@ -38,7 +38,7 @@ public static class SelfUpdater
         try
         {
             release = await Http.GetFromJsonAsync(
-                "https://api.github.com/repos/simon-curtis/Jitzu/releases/latest",
+                "https://api.github.com/repos/jitzulang/jitzu/releases/latest",
                 GitHubJsonContext.Default.GitHubRelease);
         }
         catch (Exception ex)

@@ -17,7 +17,7 @@ Jitzu is distributed as a single standalone binary — `jz` — that serves as b
 
 ### Windows (Scoop)
 
-<CodeBlock language="bash" code={`scoop bucket add jitzu https://github.com/simon-curtis/Jitzu
+<CodeBlock language="bash" code={`scoop bucket add jitzu https://github.com/jitzulang/jitzu
 scoop install jz`} />
 
 ## Self-Contained Binary
@@ -27,7 +27,7 @@ prerequisites. This is the easiest way to get started without a package manager.
 
 ### Windows
 
-Download `jitzu-win-x64.zip` from the [latest GitHub release](https://github.com/simon-curtis/jitzu/releases/latest) and extract it. Add the extracted directory to your PATH, or move the binary to a directory already on your PATH.
+Download `jitzu-win-x64.zip` from the [latest GitHub release](https://github.com/jitzulang/jitzu/releases/latest) and extract it. Add the extracted directory to your PATH, or move the binary to a directory already on your PATH.
 
 <CodeBlock language="bash" code={`# PowerShell
 Expand-Archive jitzu-win-x64.zip -DestinationPath C:\\tools\\jitzu
@@ -38,7 +38,7 @@ Move-Item jz.exe C:\\Windows\\`} />
 
 ### macOS
 
-Download `jitzu-osx-arm64.zip` (Apple Silicon) or `jitzu-osx-x64.zip` (Intel) from the [latest release](https://github.com/simon-curtis/jitzu/releases/latest).
+Download `jitzu-osx-arm64.zip` (Apple Silicon) or `jitzu-osx-x64.zip` (Intel) from the [latest release](https://github.com/jitzulang/jitzu/releases/latest).
 
 <CodeBlock language="bash" code={`unzip jitzu-osx-arm64.zip
 sudo mv jz /usr/local/bin/
@@ -46,7 +46,7 @@ chmod +x /usr/local/bin/jz`} />
 
 ### Linux
 
-Download `jitzu-linux-x64.zip` from the [latest release](https://github.com/simon-curtis/jitzu/releases/latest).
+Download `jitzu-linux-x64.zip` from the [latest release](https://github.com/jitzulang/jitzu/releases/latest).
 
 <CodeBlock language="bash" code={`unzip jitzu-linux-x64.zip
 sudo mv jz /usr/local/bin/
@@ -62,7 +62,7 @@ Jitzu can update itself:
 
 Jitzu requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) to build from source.
 
-<CodeBlock language="bash" code={`git clone https://github.com/simon-curtis/jitzu.git
+<CodeBlock language="bash" code={`git clone https://github.com/jitzulang/jitzu.git
 cd jitzu
 dotnet build
 dotnet run --project Jitzu.Shell -- --help
