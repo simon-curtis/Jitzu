@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
-namespace Jitzu.Interpreter.Infrastructure.Logging;
+namespace Jitzu.Shell.Infrastructure.Logging;
 
 public static class StatsLogger
 {

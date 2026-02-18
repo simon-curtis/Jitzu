@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/simon-curtis/Jitzu/releases/download/v0.2.0/jitzu-0.2.0-win-x64.zip",
+      "hash": ""
+    }
+  },
+  "bin": "jz.exe",
+  "checkver": {
+    "github": "https://github.com/simon-curtis/Jitzu"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/simon-curtis/Jitzu/releases/download/v$version/jitzu-$version-win-x64.zip"
+      }
+    }
+  }
+}

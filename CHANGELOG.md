@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Interpreter (jz)**: Full scripting language interpreter
-- **Shell (jzsh)**: Interactive REPL with command execution
+- **Shell**: Interactive REPL with command execution
 - **Built-in Types**: Int, String, Bool, Double, Char, Date, Time, DateTime
 - **Union Types**: Result<T, E>, Option<T>, Ok<T>, Err<E>, Some<T>, None<T>
 - **NuGet Support**: Load and use .NET NuGet packages dynamically

@@ -138,7 +138,7 @@ public class SudoCommand
         {
             var exePath = Environment.ProcessPath
                 ?? Process.GetCurrentProcess().MainModule?.FileName
-                ?? "jzsh.exe";
+                ?? "jz.exe";
 
             var startInfo = new ProcessStartInfo
             {

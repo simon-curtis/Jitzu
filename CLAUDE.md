@@ -11,12 +11,12 @@ dotnet build
 
 **Run a Jitzu script**
 ```bash
-cd Jitzu.Interpreter && dotnet run -- ../Tests/namespace_simple_builtin.jz
+cd Jitzu.Shell && dotnet run -- ../Tests/namespace_simple_builtin.jz
 ```
 
 **Run with debug output**
 ```bash
-cd Jitzu.Interpreter && dotnet run -- -d ../Tests/script.jz
+cd Jitzu.Shell && dotnet run -- -d ../Tests/script.jz
 ```
 
 **Run tests**
@@ -33,8 +33,7 @@ dotnet clean
 
 **Root Level**
 - `Jitzu.Core/` - Language foundation (Lexer, Parser, AST types, bytecode definition)
-- `Jitzu.Interpreter/` - Execution engine (compilation stages, bytecode VM, CLI)
-- `Jitzu.Shell/` - Interactive shell interface
+- `Jitzu.Shell/` - Unified binary: interpreter, shell, CLI entry point
 - `Jitzu.Tests/` - Unit test suite
 - `Tests/` - Integration test scripts (`.jz` files)
 - `site/` - Documentation website
@@ -58,7 +57,7 @@ Jitzu follows a classic three-phase interpreter architecture:
 **Pipeline**: Source Text → Lexer → Tokens → Parser → AST (Expression[])
 
 ### Phase 2: Middle-End (Analysis & Optimization)
-- **Location**: `Jitzu.Interpreter/Core/Compilation/`
+- **Location**: `Jitzu.Core/Runtime/Compilation/`
 - **Components**:
   - `ProgramBuilder.cs` - Type registration, slot mapping, global setup
   - `SemanticAnalyser.cs` - Two-pass type resolution and validation
@@ -68,7 +67,7 @@ Jitzu follows a classic three-phase interpreter architecture:
 **Pipeline**: AST → Type Resolution → Local Optimization → Semantic Validation
 
 ### Phase 3: Back-End (Code Generation & Execution)
-- **Location**: `Jitzu.Interpreter/Core/`
+- **Location**: `Jitzu.Core/`
 - **Components**:
   - `ByteCodeCompiler.cs` - Converts AST to bytecode instructions
   - `ByteCodeInterpreter.cs` - Stack-based VM that executes bytecode
@@ -96,7 +95,7 @@ Bytecode (OpCode instructions + constants)
 Result
 ```
 
-See `Jitzu.Interpreter/Program.cs:72-85` for the actual orchestration.
+See `Jitzu.Shell/Program.cs` for the actual orchestration.
 
 ## Type System
 
@@ -385,24 +384,24 @@ If "Unknown type identifier: TypeName" error occurs:
 - `Jitzu.Core/Language/Token.cs` - Token definitions
 
 **Compilation**:
-- `Jitzu.Interpreter/Core/Compilation/ProgramBuilder.cs` - Setup & type registration
-- `Jitzu.Interpreter/Core/Compilation/SemanticAnalyser.cs` - Type resolution (2-pass)
-- `Jitzu.Interpreter/Core/Compilation/AstTransformer.cs` - Local optimization
-- `Jitzu.Interpreter/Core/Compilation/ByteCodeCompiler.cs` - Code generation
+- `Jitzu.Core/Runtime/Compilation/ProgramBuilder.cs` - Setup & type registration
+- `Jitzu.Core/Runtime/Compilation/SemanticAnalyser.cs` - Type resolution (2-pass)
+- `Jitzu.Core/Runtime/Compilation/AstTransformer.cs` - Local optimization
+- `Jitzu.Core/Runtime/Compilation/ByteCodeCompiler.cs` - Code generation
 
 **Runtime**:
-- `Jitzu.Interpreter/Core/ByteCodeInterpreter.cs` - Stack VM execution
-- `Jitzu.Interpreter/Runtime/RuntimeProgram.cs` - Compiled program metadata
-- `Jitzu.Interpreter/Runtime/ProgramStack.cs` - Execution stack
+- `Jitzu.Core/ByteCodeInterpreter.cs` - Stack VM execution
+- `Jitzu.Core/Runtime/RuntimeProgram.cs` - Compiled program metadata
+- `Jitzu.Core/Runtime/ProgramStack.cs` - Execution stack
 - `Jitzu.Core/Runtime/OpCode.cs` - Bytecode instruction set
 
 **Execution**:
-- `Jitzu.Interpreter/Program.cs` - CLI entry point & orchestration
+- `Jitzu.Shell/Program.cs` - CLI entry point & orchestration
 
 **Type System**:
 - `Jitzu.Core/Runtime/UserTypeDescriptor.cs` - User type metadata
-- `Jitzu.Interpreter/Core/Compilation/UserTypeEmitter.cs` - Dynamic type creation
-- `Jitzu.Interpreter/Runtime/TypeRegistry.cs` - Type registration helper
+- `Jitzu.Core/Runtime/Compilation/UserTypeEmitter.cs` - Dynamic type creation
+- `Jitzu.Core/Runtime/TypeRegistry.cs` - Type registration helper
 
 ## Namespace Architecture
 

@@ -20,23 +20,39 @@
 
 Jitzu is a lightweight, expressive scripting language that runs on the .NET runtime, designed for speed, flexibility, and simplicity. It can be:
 
-- **Interpreted** – Run scripts instantly with the `jz` interpreter
-- **Used as a Shell** – Execute commands interactively with `jzsh`
+- **Interpreted** – Run scripts instantly with `jz script.jz`
+- **Used as a Shell** – Execute commands interactively with `jz`
 - **Extended with NuGet** – Import any .NET package directly
 - **User-Defined Types** – Create custom types with fields and methods
 
 ## Installation
 
+### Package Managers
+
+```sh
+# Windows (Scoop)
+scoop bucket add jitzu https://github.com/simon-curtis/Jitzu
+scoop install jz
+```
+
+### Manual Download
+
 Download pre-built binaries from the [releases page](https://github.com/simon-curtis/jitzu/releases):
 
 | Platform | Download |
 |----------|----------|
-| Linux x64 | `jitzu-v0.1.0-linux-x64.zip` |
-| Windows x64 | `jitzu-v0.1.0-win-x64.zip` |
-| macOS x64 | `jitzu-v0.1.0-osx-x64.zip` |
-| macOS ARM | `jitzu-v0.1.0-osx-arm64.zip` |
+| Linux x64 | `jitzu-{version}-linux-x64.zip` |
+| Windows x64 | `jitzu-{version}-win-x64.zip` |
+| macOS x64 | `jitzu-{version}-osx-x64.zip` |
+| macOS ARM | `jitzu-{version}-osx-arm64.zip` |
 
-Extract the zip and add `jz` (interpreter) and/or `jzsh` (shell) to your PATH.
+Extract the zip and add `jz` to your PATH.
+
+### Self-Update
+
+```sh
+jz upgrade
+```
 
 ## Quick Start
 
@@ -47,7 +63,7 @@ jz myscript.jz
 
 Use Jitzu as an interactive shell:
 ```sh
-jzsh
+jz
 ```
 
 ## Why Jitzu?
@@ -82,7 +98,7 @@ $ jz myscript.jz
 The sum of 10 and 20 is 30
 ```
 
-## Jitzu Shell (jzsh)
+## Jitzu Shell
 
 The interactive shell supports:
 - Command chaining (`|`, `&&`, `||`)
@@ -93,12 +109,13 @@ The interactive shell supports:
 - Command history
 
 ```terminal
-$ jzsh
-jzsh$ echo "Hello, World!"
+$ jz
+jz v0.2.0
+> echo "Hello, World!"
 Hello, World!
-jzsh$ ls -la
+> ls -la
 ...
-jzsh$ exit
+> exit
 ```
 
 ## Documentation
@@ -114,7 +131,7 @@ Requirements: .NET 10 SDK
 dotnet build
 
 # Run interpreter
-dotnet run --project Jitzu.Interpreter -- ../Tests/script.jz
+dotnet run --project Jitzu.Shell -- ../Tests/script.jz
 
 # Run shell
 dotnet run --project Jitzu.Shell

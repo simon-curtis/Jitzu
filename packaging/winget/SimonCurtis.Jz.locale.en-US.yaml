@@ -1,0 +1,19 @@
+PackageIdentifier: SimonCurtis.Jz
+PackageVersion: 0.2.0
+PackageLocale: en-US
+Publisher: Simon Curtis
+PublisherUrl: https://github.com/simon-curtis
+PackageName: Jitzu
+PackageUrl: https://github.com/simon-curtis/Jitzu
+License: MIT
+LicenseUrl: https://github.com/simon-curtis/Jitzu/blob/main/LICENSE
+ShortDescription: A fast and flexible scripting language and shell built on .NET
+Description: Jitzu is a modern scripting language with an interactive shell, NuGet package support, union types, pattern matching, and a bytecode VM. Ships as a single binary (jz) for both scripting and interactive use.
+Tags:
+  - scripting
+  - shell
+  - dotnet
+  - programming-language
+  - interpreter
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

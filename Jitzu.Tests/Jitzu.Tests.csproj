@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Jitzu.Interpreter\Jitzu.Interpreter.csproj" />
     <ProjectReference Include="..\Jitzu.Shell\Jitzu.Shell.csproj" />
   </ItemGroup>
 

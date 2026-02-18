@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace Jitzu.Interpreter.Infrastructure.Logging;
+namespace Jitzu.Shell.Infrastructure.Logging;
 
 public static class Telemetry
 {

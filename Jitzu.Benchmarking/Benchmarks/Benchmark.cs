@@ -68,7 +68,7 @@ public class Benchmark
 
         var command = extension switch
         {
-            "jz" => new Command(@"D:\git\jitzu\Jitzu.Interpreter\bin\Publish\jz").WithArguments([script, ..args]),
+            "jz" => new Command(@"D:\git\jitzu\Jitzu.Shell\bin\Publish\jz").WithArguments([script, ..args]),
             "py" => new Command("python3").WithArguments([script, ..args]),
             "ps1" => new Command("pwsh").WithArguments(["-noprofile", script, ..args]),
             _ => throw new Exception($"Unknown extension: {extension}")

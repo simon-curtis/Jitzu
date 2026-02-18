@@ -36,8 +36,8 @@ function highlightShell(code: string): string {
       const [, bullet, key, sep, value] = kvMatch;
       return `<span style="color:${theme.dim}">${esc(bullet)}</span><span style="color:${theme.command}">${esc(key)}</span><span style="color:${theme.dim}">${esc(sep)}</span><span style="color:${theme.text}">${esc(value)}</span>`;
     }
-    // Version/banner lines (e.g. "jzsh v0.3.0")
-    const versionMatch = line.match(/^(jzsh|jz)\s+(v[\d.]+)$/);
+    // Version/banner lines (e.g. "jz v0.2.0")
+    const versionMatch = line.match(/^(jz)\s+(v[\d.]+)$/);
     if (versionMatch) {
       const [, name, ver] = versionMatch;
       return `<span style="color:${theme.command};font-weight:bold">${esc(name)}</span> <span style="color:${theme.number}">${esc(ver)}</span>`;
