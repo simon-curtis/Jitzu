@@ -34,33 +34,6 @@ jobs:
         with:
           dotnet-version: '10.0.100'
       
-      - name: Restore
-        run: dotnet restore Jitzu.slnx
-      
-      - name: Publish Interpreter (jz)
-        run: |
-          dotnet publish Jitzu.Interpreter/Jitzu.Interpreter.csproj \
-            -c Release \
-            -r ${{ matrix.runtime }} \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./publish/${{ matrix.suffix }}
-      
-      - name: Publish Shell (jzsh)
-        run: |
-          dotnet publish Jitzu.Shell/Jitzu.Shell.csproj \
-            -c Release \
-            -r ${{ matrix.runtime }} \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./publish/${{ matrix.suffix }}
-      
-      - name: Install 7z
-        if: matrix.runtime == 'win-x64'
-        run: sudo apt-get install -y p7zip-full
-      
       - name: Resolve version
         id: version
         run: |
@@ -71,6 +44,35 @@ jobs:
             echo "version=0.0.0-dev" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Restore
+        run: dotnet restore Jitzu.slnx
+
+      - name: Publish Interpreter (jz)
+        run: |
+          dotnet publish Jitzu.Interpreter/Jitzu.Interpreter.csproj \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/${{ matrix.suffix }}
+
+      - name: Publish Shell (jzsh)
+        run: |
+          dotnet publish Jitzu.Shell/Jitzu.Shell.csproj \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -o ./publish/${{ matrix.suffix }}
+      
+      - name: Install 7z
+        if: matrix.runtime == 'win-x64'
+        run: sudo apt-get install -y p7zip-full
+      
       - name: Create ZIPs
         run: |
           VERSION=${{ steps.version.outputs.version }}
