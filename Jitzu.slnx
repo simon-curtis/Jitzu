@@ -1,7 +1,6 @@
 <Solution>
   <Project Path="Jitzu.Benchmarking/Jitzu.Benchmarking.csproj" />
   <Project Path="Jitzu.Core/Jitzu.Core.csproj" />
-  <Project Path="Jitzu.Interpreter/Jitzu.Interpreter.csproj" />
   <Project Path="Jitzu.Shell/Jitzu.Shell.csproj" />
   <Project Path="Jitzu.Tests/Jitzu.Tests.csproj" />
 </Solution>

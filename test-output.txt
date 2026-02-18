@@ -1,0 +1,481 @@
+Running tests from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+failed ForLoop_OverIntRange (88ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "0
+  1
+  2"
+      but was
+  "0
+  1
+  2"
+      difference
+  Difference     |       |    |    |    |    |    |   
+                 |      \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    
+  Expected Value | 0    \n   1    \n   2              
+  Actual Value   | 0    \r   \n   1    \r   \n   2    
+  Expected Code  | 48   10   49   10   50             
+  Actual Code    | 48   13   10   49   13   10   50   
+    at Jitzu.Tests.ForLoopTests.ForLoop_OverIntRange() in D:\git\jitzu\Jitzu.Tests\ForLoopTests.cs:18
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed ForLoop_OverString (89ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "a
+  b
+  c"
+      but was
+  "a
+  b
+  c"
+      difference
+  Difference     |       |    |    |    |    |    |   
+                 |      \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    
+  Expected Value | a    \n   b    \n   c              
+  Actual Value   | a    \r   \n   b    \r   \n   c    
+  Expected Code  | 97   10   98   10   99             
+  Actual Code    | 97   13   10   98   13   10   99   
+    at Jitzu.Tests.ForLoopTests.ForLoop_OverString() in D:\git\jitzu\Jitzu.Tests\ForLoopTests.cs:74
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed FunctionParameter_ShadowsGlobal (37ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "42
+  10"
+      but was
+  "42
+  10"
+      difference
+  Difference     |            |    |    |    |   
+                 |           \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    
+  Expected Value | 4    2    \n   1    0         
+  Actual Value   | 4    2    \r   \n   1    0    
+  Expected Code  | 52   50   10   49   48        
+  Actual Code    | 52   50   13   10   49   48   
+    at Jitzu.Tests.ShadowingTests.FunctionParameter_ShadowsGlobal() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:86
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed ForLoop_IteratorShadowsOuter (70ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "0
+  1
+  2
+  999"
+      but was
+  "0
+  1
+  2
+  999"
+      difference
+  Difference     |       |    |    |    |         |    |    |    |    |    |   
+                 |      \|/  \|/  \|/  \|/       \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    7    8    9    10   11   
+  Expected Value | 0    \n   1    \n   2    \n   9    9    9                   
+  Actual Value   | 0    \r   \n   1    \r   \n   2    \r   \n   9    9    9    
+  Expected Code  | 48   10   49   10   50   10   57   57   57                  
+  Actual Code    | 48   13   10   49   13   10   50   13   10   57   57   57   
+    at Jitzu.Tests.ShadowingTests.ForLoop_IteratorShadowsOuter() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:186
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed WhileLoop_ShadowsOuterVariable (37ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "42
+  100"
+      but was
+  "42
+  100"
+      difference
+  Difference     |            |    |    |         |   
+                 |           \|/  \|/  \|/       \|/  
+  Index          | 0    1    2    3    4    5    6    
+  Expected Value | 4    2    \n   1    0    0         
+  Actual Value   | 4    2    \r   \n   1    0    0    
+  Expected Code  | 52   50   10   49   48   48        
+  Actual Code    | 52   50   13   10   49   48   48   
+    at Jitzu.Tests.ShadowingTests.WhileLoop_ShadowsOuterVariable() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:171
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed ForLoop_OverMixedExpressionArray (89ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "10
+  20
+  30"
+      but was
+  "10
+  20
+  30"
+      difference
+  Difference     |            |    |    |    |    |    |    |    |   
+                 |           \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    7    8    9    
+  Expected Value | 1    0    \n   2    0    \n   3    0              
+  Actual Value   | 1    0    \r   \n   2    0    \r   \n   3    0    
+  Expected Code  | 49   48   10   50   48   10   51   48             
+  Actual Code    | 49   48   13   10   50   48   13   10   51   48   
+    at Jitzu.Tests.ForLoopTests.ForLoop_OverMixedExpressionArray() in D:\git\jitzu\Jitzu.Tests\ForLoopTests.cs:160
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed SameScope_Redeclaration (70ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "1
+  2"
+      but was
+  "1
+  2"
+      difference
+  Difference     |       |    |    |   
+                 |      \|/  \|/  \|/  
+  Index          | 0    1    2    3    
+  Expected Value | 1    \n   2         
+  Actual Value   | 1    \r   \n   2    
+  Expected Code  | 49   10   50        
+  Actual Code    | 49   13   10   50   
+    at Jitzu.Tests.ShadowingTests.SameScope_Redeclaration() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:200
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed ForLoop_OverStringArray (89ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "alice
+  bob
+  charlie"
+      but was
+  "alice
+  bob
+  charlie"
+      difference
+  Difference     |                           |    |    |    |    |    |    |    |    |    |    |    |    |    |   
+                 |                          \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   17   18   
+  Expected Value | a    l    i    c    e    \n   b    o    b    \n   c    h    a    r    l    i    e              
+  Actual Value   | a    l    i    c    e    \r   \n   b    o    b    \r   \n   c    h    a    r    l    i    e    
+  Expected Code  | 97   108  105  99   101  10   98   111  98   10   99   104  97   114  108  105  101            
+  Actual Code    | 97   108  105  99   101  13   10   98   111  98   13   10   99   104  97   114  108  105  101  
+    at Jitzu.Tests.ForLoopTests.ForLoop_OverStringArray() in D:\git\jitzu\Jitzu.Tests\ForLoopTests.cs:46
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed ForLoop_OverArray (89ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "1
+  2
+  3"
+      but was
+  "1
+  2
+  3"
+      difference
+  Difference     |       |    |    |    |    |    |   
+                 |      \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    
+  Expected Value | 1    \n   2    \n   3              
+  Actual Value   | 1    \r   \n   2    \r   \n   3    
+  Expected Code  | 49   10   50   10   51             
+  Actual Code    | 49   13   10   50   13   10   51   
+    at Jitzu.Tests.ForLoopTests.ForLoop_OverArray() in D:\git\jitzu\Jitzu.Tests\ForLoopTests.cs:32
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed NestedBlocks_MultipleShadowLevels (70ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "3
+  2
+  1"
+      but was
+  "3
+  2
+  1"
+      difference
+  Difference     |       |    |    |    |    |    |   
+                 |      \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    
+  Expected Value | 3    \n   2    \n   1              
+  Actual Value   | 3    \r   \n   2    \r   \n   1    
+  Expected Code  | 51   10   50   10   49             
+  Actual Code    | 51   13   10   50   13   10   49   
+    at Jitzu.Tests.ShadowingTests.NestedBlocks_MultipleShadowLevels() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:70
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed Shadow_DifferentTypes (22ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "hello
+  42"
+      but was
+  "hello
+  42"
+      difference
+  Difference     |                           |    |    |    |   
+                 |                          \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    7    8    
+  Expected Value | h    e    l    l    o    \n   4    2         
+  Actual Value   | h    e    l    l    o    \r   \n   4    2    
+  Expected Code  | 104  101  108  108  111  10   52   50        
+  Actual Code    | 104  101  108  108  111  13   10   52   50   
+    at Jitzu.Tests.ShadowingTests.Shadow_DifferentTypes() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:248
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed ForLoop_OverBoolArray (125ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "True
+  False
+  True"
+      but was
+  "True
+  False
+  True"
+      difference
+  Difference     |                      |    |    |    |    |    |    |    |    |    |    |    |    |   
+                 |                     \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   
+  Expected Value | T    r    u    e    \n   F    a    l    s    e    \n   T    r    u    e              
+  Actual Value   | T    r    u    e    \r   \n   F    a    l    s    e    \r   \n   T    r    u    e    
+  Expected Code  | 84   114  117  101  10   70   97   108  115  101  10   84   114  117  101            
+  Actual Code    | 84   114  117  101  13   10   70   97   108  115  101  13   10   84   114  117  101  
+    at Jitzu.Tests.ForLoopTests.ForLoop_OverBoolArray() in D:\git\jitzu\Jitzu.Tests\ForLoopTests.cs:145
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed FunctionLocal_ShadowsGlobal (23ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "99
+  10"
+      but was
+  "99
+  10"
+      difference
+  Difference     |            |    |    |    |   
+                 |           \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    
+  Expected Value | 9    9    \n   1    0         
+  Actual Value   | 9    9    \r   \n   1    0    
+  Expected Code  | 57   57   10   49   48        
+  Actual Code    | 57   57   13   10   49   48   
+    at Jitzu.Tests.ShadowingTests.FunctionLocal_ShadowsGlobal() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:103
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed IfBlock_ShadowsOuterVariable (23ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "2
+  1"
+      but was
+  "2
+  1"
+      difference
+  Difference     |       |    |    |   
+                 |      \|/  \|/  \|/  
+  Index          | 0    1    2    3    
+  Expected Value | 2    \n   1         
+  Actual Value   | 2    \r   \n   1    
+  Expected Code  | 50   10   49        
+  Actual Code    | 50   13   10   49   
+    at Jitzu.Tests.ShadowingTests.IfBlock_ShadowsOuterVariable() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:119
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed ForLoop_LiteralRangeAllowsSameNameVariable (125ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "1
+  2
+  3"
+      but was
+  "1
+  2
+  3"
+      difference
+  Difference     |       |    |    |    |    |    |   
+                 |      \|/  \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    
+  Expected Value | 1    \n   2    \n   3              
+  Actual Value   | 1    \r   \n   2    \r   \n   3    
+  Expected Code  | 49   10   50   10   51             
+  Actual Code    | 49   13   10   50   13   10   51   
+    at Jitzu.Tests.ForLoopTests.ForLoop_LiteralRangeAllowsSameNameVariable() in D:\git\jitzu\Jitzu.Tests\ForLoopTests.cs:132
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed IfElse_BothBranchesShadowIndependently (25ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "3
+  1"
+      but was
+  "3
+  1"
+      difference
+  Difference     |       |    |    |   
+                 |      \|/  \|/  \|/  
+  Index          | 0    1    2    3    
+  Expected Value | 3    \n   1         
+  Actual Value   | 3    \r   \n   1    
+  Expected Code  | 51   10   49        
+  Actual Code    | 51   13   10   49   
+    at Jitzu.Tests.ShadowingTests.IfElse_BothBranchesShadowIndependently() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:153
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed ForLoop_ShadowingCollectionVariableIsAllowed (89ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "99
+  99
+  99"
+      but was
+  "99
+  99
+  99"
+      difference
+  Difference     |            |    |         |    |    |    |    |   
+                 |           \|/  \|/       \|/  \|/  \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    5    6    7    8    9    
+  Expected Value | 9    9    \n   9    9    \n   9    9              
+  Actual Value   | 9    9    \r   \n   9    9    \r   \n   9    9    
+  Expected Code  | 57   57   10   57   57   10   57   57             
+  Actual Code    | 57   57   13   10   57   57   13   10   57   57   
+    at Jitzu.Tests.ForLoopTests.ForLoop_ShadowingCollectionVariableIsAllowed() in D:\git\jitzu\Jitzu.Tests\ForLoopTests.cs:103
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed Shadow_MutableOuterImmutableInner (22ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "99
+  5"
+      but was
+  "99
+  5"
+      difference
+  Difference     |            |    |    |   
+                 |           \|/  \|/  \|/  
+  Index          | 0    1    2    3    4    
+  Expected Value | 9    9    \n   5         
+  Actual Value   | 9    9    \r   \n   5    
+  Expected Code  | 57   57   10   53        
+  Actual Code    | 57   57   13   10   53   
+    at Jitzu.Tests.ShadowingTests.Shadow_MutableOuterImmutableInner() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:265
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed BlockScope_BothValuesAccessible (23ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should be
+  "2
+  1"
+      but was
+  "2
+  1"
+      difference
+  Difference     |       |    |    |   
+                 |      \|/  \|/  \|/  
+  Index          | 0    1    2    3    
+  Expected Value | 2    \n   1         
+  Actual Value   | 2    \r   \n   1    
+  Expected Code  | 50   10   49        
+  Actual Code    | 50   13   10   49   
+    at Jitzu.Tests.ShadowingTests.BlockScope_BothValuesAccessible() in D:\git\jitzu\Jitzu.Tests\ShadowingTests.cs:50
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+[+111/x19/?0] Jitzu.Tests.dll (net10.0|x64)(2s)
+
+failed PwdCommand_ReturnsCurrentDirectory (3s 189ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should contain (case insensitive comparison)
+  "tmp"
+      but was actually
+  "Unexpected error: The handle is invalid.
+  Unexpected error: The handle is invalid.
+  Unexpected error..."
+    at Jitzu.Tests.ShellTests.PwdCommand_ReturnsCurrentDirectory() in D:\git\jitzu\Jitzu.Tests\ShellTests.cs:44
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at Jitzu.Tests.ShellTests.PwdCommand_ReturnsCurrentDirectory() in D:\git\jitzu\Jitzu.Tests\ShellTests.cs:46
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed MultipleCommands_ChainedWithSemicolon (3s 220ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output.ToLower()
+      should contain (case insensitive comparison)
+  "b"
+      but was actually
+  "unexpected error: the handle is invalid.
+  unexpected error: the handle is invalid.
+  unexpected error..."
+    at Jitzu.Tests.ShellTests.MultipleCommands_ChainedWithSemicolon() in D:\git\jitzu\Jitzu.Tests\ShellTests.cs:96
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at Jitzu.Tests.ShellTests.MultipleCommands_ChainedWithSemicolon() in D:\git\jitzu\Jitzu.Tests\ShellTests.cs:99
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+failed CdCommand_ChangesDirectory (3s 530ms)
+  from D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64)
+  TUnit.Engine.Exceptions.TestFailedException: ShouldAssertException: output
+      should contain (case insensitive comparison)
+  "/"
+      but was actually
+  "Unexpected error: The handle is invalid.
+  Unexpected error: The handle is invalid.
+  Unexpected error..."
+    at Jitzu.Tests.ShellTests.CdCommand_ChangesDirectory() in D:\git\jitzu\Jitzu.Tests\ShellTests.cs:60
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at Jitzu.Tests.ShellTests.CdCommand_ChangesDirectory() in D:\git\jitzu\Jitzu.Tests\ShellTests.cs:62
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+[+113/x22/?0] Jitzu.Tests.dll (net10.0|x64)(5s)
+
+D:\git\jitzu\Jitzu.Tests\bin\Debug\net10.0\Jitzu.Tests.dll (net10.0|x64) failed with 22 error(s) (6s 870ms)
+Exit code: 2
+
+Test run summary: Failed!
+  total: 135
+  failed: 22
+  succeeded: 113
+  skipped: 0
+  duration: 7s 075ms
+Test run completed with non-success exit code: 2 (see: https://aka.ms/testingplatform/exitcodes)

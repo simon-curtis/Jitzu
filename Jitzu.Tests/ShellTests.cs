@@ -6,16 +6,16 @@ public class ShellTests
 {
     private string GetShellPath()
     {
-        var shellProjectPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Jitzu.Shell", "bin", "Debug", "net10.0", "jzsh");
+        var shellProjectPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Jitzu.Shell", "bin", "Debug", "net10.0", "jz");
         
         if (File.Exists(shellProjectPath))
             return shellProjectPath;
         
-        var releasePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Jitzu.Shell", "bin", "Release", "net10.0", "jzsh");
+        var releasePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Jitzu.Shell", "bin", "Release", "net10.0", "jz");
         if (File.Exists(releasePath))
             return releasePath;
         
-        return "jzsh";
+        return "jz";
     }
 
     [Test]

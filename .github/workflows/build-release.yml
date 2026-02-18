@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         include:
@@ -24,16 +24,16 @@ jobs:
             suffix: osx-x64
           - runtime: osx-arm64
             suffix: osx-arm64
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.100'
-      
+
       - name: Resolve version
         id: version
         run: |
@@ -47,18 +47,7 @@ jobs:
       - name: Restore
         run: dotnet restore Jitzu.slnx
 
-      - name: Publish Interpreter (jz)
-        run: |
-          dotnet publish Jitzu.Interpreter/Jitzu.Interpreter.csproj \
-            -c Release \
-            -r ${{ matrix.runtime }} \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:IncludeNativeLibrariesForSelfExtract=true \
-            -p:Version=${{ steps.version.outputs.version }} \
-            -o ./publish/${{ matrix.suffix }}
-
-      - name: Publish Shell (jzsh)
+      - name: Publish jz
         run: |
           dotnet publish Jitzu.Shell/Jitzu.Shell.csproj \
             -c Release \
@@ -68,19 +57,19 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true \
             -p:Version=${{ steps.version.outputs.version }} \
             -o ./publish/${{ matrix.suffix }}
-      
+
       - name: Install 7z
         if: matrix.runtime == 'win-x64'
         run: sudo apt-get install -y p7zip-full
-      
+
       - name: Create ZIPs
         run: |
           VERSION=${{ steps.version.outputs.version }}
           cd publish/${{ matrix.suffix }}
           if [ "${{ matrix.runtime }}" = "win-x64" ]; then
-            7z a -tzip ../jitzu-${VERSION}-${{ matrix.suffix }}.zip jz.exe jzsh.exe
+            7z a -tzip ../jitzu-${VERSION}-${{ matrix.suffix }}.zip jz.exe
           else
-            zip ../jitzu-${VERSION}-${{ matrix.suffix }}.zip jz jzsh
+            zip ../jitzu-${VERSION}-${{ matrix.suffix }}.zip jz
           fi
 
       - name: Upload ZIP artifacts
@@ -130,21 +119,93 @@ jobs:
 
             ## What's Inside
 
-            Each zip contains:
-            - `jz` / `jzsh.exe` - The Jitzu interpreter and shell
+            Each zip contains `jz` — the unified Jitzu interpreter and shell.
 
             ## Quick Start
 
             ### Linux / macOS
             ```bash
             unzip jitzu-${{ steps.version.outputs.version }}-*.zip
-            ./jzsh
+            chmod +x jz
+            ./jz           # interactive shell
+            ./jz script.jz # run a script
             ```
 
             ### Windows
             ```powershell
             Expand-Archive jitzu-${{ steps.version.outputs.version }}-win-x64.zip
-            .\jzsh.exe
+            .\jz.exe           # interactive shell
+            .\jz.exe script.jz # run a script
+            ```
+
+            ### Package Managers
+
+            ```bash
+            # Windows (Scoop)
+            scoop bucket add jitzu https://github.com/simon-curtis/Jitzu
+            scoop install jz
             ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-scoop:
+    needs: release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolve version
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download win-x64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jitzu-win-x64
+          path: artifacts
+
+      - name: Compute SHA256
+        id: hash
+        run: |
+          HASH=$(sha256sum artifacts/jitzu-${{ steps.version.outputs.version }}-win-x64.zip | cut -d' ' -f1)
+          echo "sha256=$HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Update Scoop manifest
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          HASH=${{ steps.hash.outputs.sha256 }}
+          cat > bucket/jz.json << MANIFEST
+          {
+            "version": "${VERSION}",
+            "architecture": {
+              "64bit": {
+                "url": "https://github.com/simon-curtis/Jitzu/releases/download/v${VERSION}/jitzu-${VERSION}-win-x64.zip",
+                "hash": "${HASH}"
+              }
+            },
+            "bin": "jz.exe",
+            "checkver": {
+              "github": "https://github.com/simon-curtis/Jitzu"
+            },
+            "autoupdate": {
+              "architecture": {
+                "64bit": {
+                  "url": "https://github.com/simon-curtis/Jitzu/releases/download/v\$version/jitzu-\$version-win-x64.zip"
+                }
+              }
+            }
+          }
+          MANIFEST
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/jz.json
+          git commit -m "Update Scoop manifest to v${VERSION}" || exit 0
+          git push
