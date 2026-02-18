@@ -382,6 +382,10 @@ public record ForExpression : Expression
     public required IIdentifierLiteral Identifier { get; set; }
     public required Expression Range { get; set; }
     public required BlockBodyExpression Body { get; set; }
+    public int LimitSlot { get; set; }
+    public int CounterSlot { get; set; }
+    public int CollectionSlot { get; set; }
+    public bool IsCollection { get; set; }
 
     public override string ToString()
     {
@@ -417,7 +421,7 @@ public record WhileExpression : Expression
 {
     public Token WhileToken { get; set; }
     public required Expression Condition { get; set; }
-    public required Expression[] Body { get; set; }
+    public required Expression Body { get; set; }
 }
 
 public record OpenExpression : Expression

@@ -168,6 +168,19 @@ public class SemanticAnalyser(RuntimeProgram program)
             case WhileExpression whileExpression:
                 return AnalyseWhileExpression(whileExpression);
 
+            case QuickArrayInitialisationExpression arrayInit:
+            {
+                for (var i = 0; i < arrayInit.Expressions.Length; i++)
+                    arrayInit.Expressions[i] = AnalyseExpression(arrayInit.Expressions[i]);
+                return arrayInit;
+            }
+
+            case ForExpression forExpression:
+                forExpression.Range = AnalyseExpression(forExpression.Range);
+                for (var i = 0; i < forExpression.Body.Expressions.Length; i++)
+                    forExpression.Body.Expressions[i] = AnalyseExpression(forExpression.Body.Expressions[i]);
+                return forExpression;
+
             case InterpolatedStringExpression interpolatedStringExpression:
             {
                 foreach (var t in interpolatedStringExpression.Parts)
@@ -312,8 +325,7 @@ public class SemanticAnalyser(RuntimeProgram program)
     private WhileExpression AnalyseWhileExpression(WhileExpression whileExpression)
     {
         whileExpression.Condition = AnalyseExpression(whileExpression.Condition);
-        for (var i = 0; i < whileExpression.Body.Length; i++)
-            whileExpression.Body[i] = AnalyseExpression(whileExpression.Body[i]);
+        whileExpression.Body = AnalyseExpression(whileExpression.Body);
         return whileExpression;
     }
 

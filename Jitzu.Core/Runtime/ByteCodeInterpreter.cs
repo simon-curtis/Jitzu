@@ -333,6 +333,18 @@ public ref struct ByteCodeInterpreter
                         break;
                     }
 
+                    case OpCode.IndexGetDirect:
+                    {
+                        IndexGetDirect();
+                        break;
+                    }
+
+                    case OpCode.NewList:
+                    {
+                        NewList();
+                        break;
+                    }
+
                     case var other:
                         throw new ArgumentOutOfRangeException(other.ToString());
                 }
@@ -816,6 +828,35 @@ public ref struct ByteCodeInterpreter
         _programStack.Push(BinaryExpressionEvaluator.BitwiseOr(left, right));
     }
 
+    private void IndexGetDirect()
+    {
+        var idx = _programStack.Pop();
+        var subject = _programStack.Pop().Ref;
+        switch (subject)
+        {
+            case Value[] arr:
+                _programStack.Push(arr[idx.I32]);
+                break;
+            case IList list:
+                _programStack.Push(list[idx.I32]!);
+                break;
+            case string str:
+                _programStack.Push(str[idx.I32].ToString());
+                break;
+            default:
+                throw new Exception($"IndexGetDirect: unsupported type {subject.GetType().Name}");
+        }
+    }
+
+    private void NewList()
+    {
+        var count = ReadInt();
+        var items = new Value[count];
+        for (var i = count - 1; i >= 0; i--)
+            items[i] = _programStack.Pop();
+        _programStack.Push(items);
+    }
+
     // TODO: Review all conditions
     private void EvaluateCompare()
     {
@@ -858,6 +899,14 @@ public ref struct ByteCodeInterpreter
         {
             switch (subject)
             {
+                case Value[] arr when idx.Kind == ValueKind.Int:
+                {
+                    var item = arr[idx.I32].AsObject();
+                    var instance = MakeSome(item);
+                    _programStack.Push(instance);
+                    return;
+                }
+
                 case IList list:
                     switch (idx.Kind)
                     {
@@ -900,22 +949,26 @@ public ref struct ByteCodeInterpreter
         var value = _programStack.Pop();
         try
         {
-            var collection = _programStack.Peek();
-            switch (collection.AsObject())
+            var collection = _programStack.Peek().Ref;
+            switch (collection)
             {
+                case Value[] arr when idx.Kind == ValueKind.Int:
+                    arr[idx.I32] = value;
+                    return;
+
                 case IList list:
                     switch (idx.Kind)
                     {
                         case ValueKind.Int:
-                            list[idx.I32] = value;
+                            list[idx.I32] = value.AsObject();
                             return;
                     }
 
                     break;
 
-                case var _ when GetIndexer(collection.GetType(), idx.GetType()) is { } indexer:
+                case var subject when GetIndexer(subject.GetType(), idx.GetType()) is { } indexer:
                     var setter = indexer.GetSetMethod() ?? throw new Exception("Indexer is read only");
-                    var item = setter.Invoke(collection, [idx]) ?? Unit.Instance;
+                    var item = setter.Invoke(subject, [idx]) ?? Unit.Instance;
                     _programStack.Push(item);
                     break;
 

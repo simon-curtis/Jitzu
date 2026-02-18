@@ -440,8 +440,7 @@ public static class ExpressionFormatter
                 {
                     writer.StartObject(nameof(WhileExpression));
                     WriteExpression(whileExpression.Condition, writer);
-                    foreach (var child in whileExpression.Body)
-                        WriteExpression(child, writer);
+                    WriteExpression(whileExpression.Body, writer);
                     writer.EndObject();
                     break;
                 }

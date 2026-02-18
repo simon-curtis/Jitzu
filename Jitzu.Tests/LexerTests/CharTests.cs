@@ -7,12 +7,13 @@ namespace Jitzu.Tests.LexerTests;
 public class CharTests
 {
     [Test]
-    public void EmptyCharLiteral_ShouldThrow()
+    public async Task EmptyCharLiteral_ShouldThrow()
     {
-        Assert.Throws<JitzuException>(() =>
+        await Assert.ThrowsAsync<JitzuException>(() =>
         {
             var lexer = new Lexer("", "  ''");
             lexer.Lex();
+            return Task.CompletedTask;
         });
     }
 
@@ -39,12 +40,13 @@ public class CharTests
     }
     
     [Test]
-    public void InvalidEscapeChar_ShouldThrow()
+    public async Task InvalidEscapeChar_ShouldThrow()
     {
-        Assert.Throws<JitzuException>(() =>
+        await Assert.ThrowsAsync<JitzuException>(() =>
         {
             var lexer = new Lexer("", "  '\\m'");
             lexer.Lex();
+            return Task.CompletedTask;
         });
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Jitzu.Core;
 using Jitzu.Core.Language;
+using Shouldly;
 
 namespace Jitzu.Tests.LexerTests;
 
@@ -10,7 +11,7 @@ public class OperatorTests
     {
         var lexer = new Lexer("", "=>");
         var tokens = lexer.Lex();
-        Assert.That(tokens[0].Type, Is.EqualTo(TokenType.Operator));
-        Assert.That(tokens[0].Value, Is.EqualTo("=>"));
+        tokens[0].Type.ShouldBe(TokenType.Operator);
+        tokens[0].Value.ShouldBe("=>");
     }
 }

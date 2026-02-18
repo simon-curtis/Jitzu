@@ -49,4 +49,6 @@ public enum OpCode : byte
     GetCapturedLocal,
     SetCapturedLocal,
     MakeClosure,
+    IndexGetDirect,
+    NewList,
 }

@@ -308,8 +308,18 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
                 _currentChunk.Emit(OpCode.IndexGet, indexerExpression.Location);
                 break;
 
+            case QuickArrayInitialisationExpression arrayInit:
+                foreach (var element in arrayInit.Expressions)
+                    EmitExpression(element);
+                _currentChunk.Emit(OpCode.NewList, arrayInit.Location, arrayInit.Expressions.Length);
+                break;
+
             case WhileExpression whileExpression:
                 CompileWhileExpression(whileExpression);
+                break;
+
+            case ForExpression forExpression:
+                CompileForExpression(forExpression);
                 break;
 
             case InterpolatedStringExpression interpolatedString:
@@ -463,8 +473,7 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
             }
 
             case BlockBodyExpression blockBody:
-                foreach (var expression in blockBody.Expressions)
-                    EmitExpression(expression);
+                EmitBlockBody(blockBody);
                 break;
 
             case IfExpression ifExpression:
@@ -708,6 +717,129 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
         EmitExpression(ifExpression.Else);
     }
 
+    private void EmitBlockBody(BlockBodyExpression body)
+    {
+        foreach (var expression in body.Expressions)
+            EmitExpression(expression);
+    }
+
+    private void CompileForExpression(ForExpression forExpr)
+    {
+        if (forExpr.IsCollection)
+        {
+            CompileCollectionForExpression(forExpr);
+            return;
+        }
+
+        if (forExpr.Range is not RangeExpression { Left: not null, Right: not null } range)
+            throw new InvalidOperationException("For loop requires a bounded range (e.g. 0..10)");
+
+        var (iterSlot, iterSetOp) = forExpr.Identifier switch
+        {
+            CapturedLocalGetExpression c => (c.SlotIndex, OpCode.SetCapturedLocal),
+            LocalGetExpression l => (l.SlotIndex, OpCode.SetLocal),
+            GlobalGetExpression g => (g.SlotIndex, OpCode.SetGlobal),
+            _ => throw new NotSupportedException()
+        };
+
+        // Counter and limit are hidden slots — always same scope kind, never captured.
+        var isGlobal = forExpr.Identifier is GlobalGetExpression;
+        var getOp = isGlobal ? OpCode.GetGlobal : OpCode.GetLocal;
+        var setOp = isGlobal ? OpCode.SetGlobal : OpCode.SetLocal;
+        var counterSlot = forExpr.CounterSlot;
+        var limitSlot = forExpr.LimitSlot;
+
+        // Initialise hidden counter = range.Left, limit = range.Right
+        EmitExpression(range.Left);
+        _currentChunk.Emit(setOp, forExpr.Location, counterSlot);
+        EmitExpression(range.Right);
+        _currentChunk.Emit(setOp, forExpr.Location, limitSlot);
+
+        // Loop condition: counter < limit
+        int loopStart = _currentChunk.Code.Count;
+        _currentChunk.Emit(getOp, forExpr.Location, counterSlot);
+        _currentChunk.Emit(getOp, forExpr.Location, limitSlot);
+        _currentChunk.Emit(OpCode.Lt, forExpr.Location);
+
+        int jumpAddress = _currentChunk.Code.Count;
+        _currentChunk.Emit(OpCode.JumpIfFalse, forExpr.Location, 0);
+
+        // Per-iteration: copy counter → user-visible iterator (fresh binding)
+        _currentChunk.Emit(getOp, forExpr.Location, counterSlot);
+        _currentChunk.Emit(iterSetOp, forExpr.Location, iterSlot);
+
+        // Body
+        EmitBlockBody(forExpr.Body);
+
+        // Increment hidden counter
+        _currentChunk.Emit(getOp, forExpr.Location, counterSlot);
+        _currentChunk.Emit(OpCode.Inc, forExpr.Location);
+        _currentChunk.Emit(setOp, forExpr.Location, counterSlot);
+
+        _currentChunk.Emit(OpCode.Loop, forExpr.Location, loopStart);
+        var endOfLoop = _currentChunk.Code.Count;
+
+        PatchJump(jumpAddress, endOfLoop);
+    }
+
+    private void CompileCollectionForExpression(ForExpression forExpr)
+    {
+        var (iterSlot, iterSetOp) = forExpr.Identifier switch
+        {
+            CapturedLocalGetExpression c => (c.SlotIndex, OpCode.SetCapturedLocal),
+            LocalGetExpression l => (l.SlotIndex, OpCode.SetLocal),
+            GlobalGetExpression g => (g.SlotIndex, OpCode.SetGlobal),
+            _ => throw new NotSupportedException()
+        };
+
+        var isGlobal = forExpr.Identifier is GlobalGetExpression;
+        var getOp = isGlobal ? OpCode.GetGlobal : OpCode.GetLocal;
+        var setOp = isGlobal ? OpCode.SetGlobal : OpCode.SetLocal;
+        var counterSlot = forExpr.CounterSlot;
+        var limitSlot = forExpr.LimitSlot;
+        var collectionSlot = forExpr.CollectionSlot;
+
+        // Init: collection = expr, counter = 0, limit = collection.Length
+        EmitExpression(forExpr.Range);
+        _currentChunk.Emit(setOp, forExpr.Location, collectionSlot);
+
+        EmitConstant(0, forExpr.Location);
+        _currentChunk.Emit(setOp, forExpr.Location, counterSlot);
+
+        _currentChunk.Emit(getOp, forExpr.Location, collectionSlot);
+        int lengthIdx = _currentChunk.AddOrGetConstant("Length");
+        _currentChunk.Emit(OpCode.GetField, forExpr.Location, lengthIdx);
+        _currentChunk.Emit(setOp, forExpr.Location, limitSlot);
+
+        // Loop condition: counter < limit
+        int loopStart = _currentChunk.Code.Count;
+        _currentChunk.Emit(getOp, forExpr.Location, counterSlot);
+        _currentChunk.Emit(getOp, forExpr.Location, limitSlot);
+        _currentChunk.Emit(OpCode.Lt, forExpr.Location);
+
+        int jumpAddress = _currentChunk.Code.Count;
+        _currentChunk.Emit(OpCode.JumpIfFalse, forExpr.Location, 0);
+
+        // Per-iteration: item = collection[counter]
+        _currentChunk.Emit(getOp, forExpr.Location, collectionSlot);
+        _currentChunk.Emit(getOp, forExpr.Location, counterSlot);
+        _currentChunk.Emit(OpCode.IndexGetDirect, forExpr.Location);
+        _currentChunk.Emit(iterSetOp, forExpr.Location, iterSlot);
+
+        // Body
+        EmitBlockBody(forExpr.Body);
+
+        // Increment counter
+        _currentChunk.Emit(getOp, forExpr.Location, counterSlot);
+        _currentChunk.Emit(OpCode.Inc, forExpr.Location);
+        _currentChunk.Emit(setOp, forExpr.Location, counterSlot);
+
+        _currentChunk.Emit(OpCode.Loop, forExpr.Location, loopStart);
+        var endOfLoop = _currentChunk.Code.Count;
+
+        PatchJump(jumpAddress, endOfLoop);
+    }
+
     private void CompileWhileExpression(WhileExpression whileExpr)
     {
         int loopStart = _currentChunk.Code.Count;
@@ -716,8 +848,7 @@ public sealed class ByteCodeCompiler(RuntimeProgram program)
         int jumpAddress = _currentChunk.Code.Count;
         _currentChunk.Emit(OpCode.JumpIfFalse, whileExpr.Condition.Location, 0);
 
-        foreach (var stmt in whileExpr.Body)
-            EmitExpression(stmt);
+        EmitExpression(whileExpr.Body);
 
         _currentChunk.Emit(OpCode.Loop, whileExpr.Location, loopStart);
         var endOfLoop = _currentChunk.Code.Count;

@@ -83,6 +83,7 @@ public class AstTransformer(RuntimeProgram program)
             WhileExpression e => TransformWhileExpression(e, slotMapBuilder),
             MatchExpression e => TransformMatchExpression(e, slotMapBuilder),
             InterpolatedStringExpression e => TransformInterpolatedStringExpression(e, slotMapBuilder),
+            QuickArrayInitialisationExpression e => TransformQuickArrayInitialisation(e, slotMapBuilder),
             ForExpression e => TransformForExpression(e, slotMapBuilder),
             ReturnExpression e => TransformReturnExpression(e, slotMapBuilder),
             RangeExpression e => TransformRangeExpression(e, slotMapBuilder),
@@ -420,8 +421,7 @@ public class AstTransformer(RuntimeProgram program)
         SlotMapBuilder slotMapBuilder)
     {
         expression.Condition = TransformExpression(expression.Condition, slotMapBuilder);
-        for (var i = 0; i < expression.Body.Length; i++)
-            expression.Body[i] = TransformExpression(expression.Body[i], slotMapBuilder);
+        expression.Body = TransformExpression(expression.Body, slotMapBuilder);
         return expression;
     }
 
@@ -463,13 +463,69 @@ public class AstTransformer(RuntimeProgram program)
         return expression;
     }
 
+    private QuickArrayInitialisationExpression TransformQuickArrayInitialisation(
+        QuickArrayInitialisationExpression expression,
+        SlotMapBuilder slotMapBuilder)
+    {
+        for (var i = 0; i < expression.Expressions.Length; i++)
+            expression.Expressions[i] = TransformExpression(expression.Expressions[i], slotMapBuilder);
+        return expression;
+    }
+
     private ForExpression TransformForExpression(ForExpression expression, SlotMapBuilder slotMapBuilder)
     {
-        // After we have added the local, we dont need to change anything about the identifier
-        slotMapBuilder.Add(expression.Identifier.Name);
+        // Reject reassignment of the collection variable inside the loop body.
+        // Check the *untransformed* body so that `let` (shadow) is not confused with `=` (mutation).
+        if (expression.Range is not RangeExpression && expression.Range is IIdentifierLiteral ident
+            && ContainsReassignmentOf(expression.Body, ident.Name))
+            throw new JitzuException(expression.Location, $"Cannot assign to '{ident.Name}' while iterating over it");
+
+        slotMapBuilder.PushScope();
+        // Hidden counter and limit slots drive the loop — never captured by closures.
+        var counterLocal = slotMapBuilder.Add();
+        var limitLocal = slotMapBuilder.Add();
+        expression.CounterSlot = counterLocal.SlotIndex;
+        expression.LimitSlot = limitLocal.SlotIndex;
+
+        // Check if the range is a collection (not a RangeExpression)
+        if (expression.Range is not RangeExpression)
+        {
+            var collectionLocal = slotMapBuilder.Add();
+            expression.CollectionSlot = collectionLocal.SlotIndex;
+            expression.IsCollection = true;
+        }
+
+        // User-visible iterator gets a fresh copy each iteration (per-iteration scoping).
+        var iteratorLocal = slotMapBuilder.Add(expression.Identifier.Name);
+        expression.Identifier = (IIdentifierLiteral)CreateGetExpression(iteratorLocal, expression.Identifier);
         expression.Range = TransformExpression(expression.Range, slotMapBuilder);
         expression.Body = TransformBlockBody(expression.Body, slotMapBuilder);
+
+        slotMapBuilder.PopScope();
         return expression;
+    }
+
+    /// <summary>
+    /// Walks the untransformed AST looking for <see cref="AssignmentExpression"/> nodes
+    /// whose left-hand side is an identifier matching <paramref name="name"/>.
+    /// <see cref="LetExpression"/> (new binding / shadow) is intentionally excluded.
+    /// </summary>
+    private static bool ContainsReassignmentOf(Expression expr, string name)
+    {
+        return expr switch
+        {
+            AssignmentExpression { Left: IIdentifierLiteral id } when id.Name == name => true,
+            AssignmentExpression e => ContainsReassignmentOf(e.Right, name),
+            BlockBodyExpression e => e.Expressions.Any(x => ContainsReassignmentOf(x, name)),
+            IfExpression e => ContainsReassignmentOf(e.Condition, name)
+                || ContainsReassignmentOf(e.Then, name)
+                || (e.Else is not null && ContainsReassignmentOf(e.Else, name)),
+            WhileExpression e => ContainsReassignmentOf(e.Condition, name) || ContainsReassignmentOf(e.Body, name),
+            ForExpression e => ContainsReassignmentOf(e.Range, name) || ContainsReassignmentOf(e.Body, name),
+            // Don't recurse into lambdas/nested functions — they have their own scope
+            LambdaExpression or FunctionDefinitionExpression => false,
+            _ => false,
+        };
     }
 
     private ReturnExpression TransformReturnExpression(
@@ -714,13 +770,13 @@ public class AstTransformer(RuntimeProgram program)
     private static WhileExpression RewriteWhile(WhileExpression we, HashSet<int> capturedSlots)
     {
         we.Condition = RewriteCapturedLocals(we.Condition, capturedSlots);
-        for (var i = 0; i < we.Body.Length; i++)
-            we.Body[i] = RewriteCapturedLocals(we.Body[i], capturedSlots);
+        we.Body = RewriteCapturedLocals(we.Body, capturedSlots);
         return we;
     }
 
     private static ForExpression RewriteFor(ForExpression fe, HashSet<int> capturedSlots)
     {
+        fe.Identifier = (IIdentifierLiteral)RewriteCapturedLocals(fe.Identifier, capturedSlots);
         fe.Range = RewriteCapturedLocals(fe.Range, capturedSlots);
         fe.Body = RewriteBlockBody(fe.Body, capturedSlots);
         return fe;

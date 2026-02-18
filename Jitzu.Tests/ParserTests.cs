@@ -536,7 +536,7 @@ public class ParserTests
 
         var whileExpr = (WhileExpression)expressions[0];
         whileExpr.Condition.ShouldNotBeNull();
-        whileExpr.Body.ShouldNotBeEmpty();
+        whileExpr.Body.ShouldBeOfType<BlockBodyExpression>();
     }
 
     [Test]
@@ -556,7 +556,7 @@ public class ParserTests
         expressions.Length.ShouldBe(3);
         var whileExpr = expressions[2].ShouldBeOfType<WhileExpression>();
         whileExpr.Condition.ShouldNotBeNull();
-        whileExpr.Body.ShouldNotBeEmpty();
+        whileExpr.Body.ShouldBeOfType<BlockBodyExpression>();
     }
 
     [Test]
@@ -867,7 +867,6 @@ public class ParserTests
     public void Generics()
     {
         // TODO: Do this lazy bones
-        Assert.Pass();
     }
 
     private static Expression[] ParseSourceText(ReadOnlySpan<char> source)

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Jitzu.Core;
 using Jitzu.Core.Language;
 using Jitzu.Core.Runtime;
@@ -16,6 +17,7 @@ public static class InterpreterTestHarness
     /// <summary>
     /// Executes a Jitzu source code string and returns the captured console output.
     /// </summary>
+    [SuppressMessage("TUnit", "TUnit0055")]
     public static async Task<string> RunAsync(string sourceCode, string[]? args = null)
     {
         var ast = new ScriptExpression

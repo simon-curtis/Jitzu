@@ -505,6 +505,10 @@ public ref struct Parser(ReadOnlySpan<Token> tokens)
             case { Type: TokenType.Punctuation, Value: "[" }:
                 return ParseQuickArrayInitialisationExpression();
 
+            case { Type: TokenType.Punctuation, Value: "{" }
+                when Peek(1) is { Type: TokenType.Keyword }:
+                return ParseBlockBodyExpression();
+
             case { Type: TokenType.Punctuation, Value: "{" }:
                 return ParseNewDynamicExpression();
 
@@ -1273,13 +1277,13 @@ public ref struct Parser(ReadOnlySpan<Token> tokens)
     {
         var whileToken = ExpectAndConsume("while");
         var condition = ParseExpression();
-        var body = ParseBlockBodyExpression();
+        var body = IsNext('{') ? ParseBlockBodyExpression() : ParseExpression();
 
         return new WhileExpression
         {
             WhileToken = whileToken,
             Condition = condition,
-            Body = body.Expressions,
+            Body = body,
             Location = whileToken.Span.Extend(body.Location)
         };
     }
