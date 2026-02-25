@@ -67,6 +67,102 @@ public class ShellTests
     }
 
     [Test]
+    public async Task PathCommand_NoArgs_DisplaysPathEntries()
+    {
+        await using var harness = new ShellTestHarness();
+        await harness.StartAsync(ShellTestHarness.GetShellPath());
+
+        var output = await harness.SendCommandAsync("path");
+
+        // Should list PATH entries one per line — at least one entry should exist
+        output.ShouldNotBeNullOrWhiteSpace();
+        output.ShouldNotContain(OperatingSystem.IsWindows() ? ";" : ":");
+    }
+
+    [Test]
+    public async Task PathCommand_AppendsDirectory()
+    {
+        await using var harness = new ShellTestHarness();
+        await harness.StartAsync(ShellTestHarness.GetShellPath());
+
+        var tempDir = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
+        await harness.SendCommandAndWaitAsync($"path {tempDir}");
+        var output = await harness.SendCommandAsync("echo $PATH");
+
+        output.ShouldEndWith(tempDir);
+    }
+
+    [Test]
+    public async Task PathCommand_NonexistentDirectory_ReturnsError()
+    {
+        await using var harness = new ShellTestHarness();
+        await harness.StartAsync(ShellTestHarness.GetShellPath());
+
+        var output = await harness.SendCommandAsync("path /nonexistent/fake/dir");
+
+        output.ShouldContain("Directory not found");
+    }
+
+    [Test]
+    public async Task Export_SetsEnvironmentVariable()
+    {
+        await using var harness = new ShellTestHarness();
+        await harness.StartAsync(ShellTestHarness.GetShellPath());
+
+        await harness.SendCommandAndWaitAsync("export MY_TEST_VAR=hello123");
+        var output = await harness.SendCommandAsync("echo $MY_TEST_VAR");
+
+        output.ShouldBe("hello123");
+    }
+
+    [Test]
+    public async Task Export_QuotedValueWithSemicolon_PreservesSemicolon()
+    {
+        await using var harness = new ShellTestHarness();
+        await harness.StartAsync(ShellTestHarness.GetShellPath());
+
+        await harness.SendCommandAndWaitAsync("export MY_TEST_VAR=\"aaa;bbb\"");
+        var output = await harness.SendCommandAsync("echo $MY_TEST_VAR");
+
+        output.ShouldBe("aaa;bbb");
+    }
+
+    [Test]
+    public async Task Export_PathAppend_PreservesExistingPath()
+    {
+        await using var harness = new ShellTestHarness();
+        await harness.StartAsync(ShellTestHarness.GetShellPath());
+
+        // Capture original PATH
+        var originalPath = await harness.SendCommandAsync("echo $PATH");
+
+        // Re-export PATH with an appended directory
+        var separator = OperatingSystem.IsWindows() ? ";" : ":";
+        var fakeBin = "/fake/test/bin";
+        await harness.SendCommandAndWaitAsync($"export PATH=\"$PATH{separator}{fakeBin}\"");
+
+        var newPath = await harness.SendCommandAsync("echo $PATH");
+
+        newPath.ShouldContain(originalPath);
+        newPath.ShouldEndWith($"{separator}{fakeBin}");
+    }
+
+    [Test]
+    public async Task Export_UnquotedSemicolon_TreatedAsCommandSeparator()
+    {
+        await using var harness = new ShellTestHarness();
+        await harness.StartAsync(ShellTestHarness.GetShellPath());
+
+        // Without quotes, semicolon splits into two commands
+        // "export X=aaa" then "bbb" (which fails silently or is treated as a command)
+        await harness.SendCommandAndWaitAsync("export MY_SPLIT_VAR=aaa;echo SPLIT_MARKER");
+        var output = await harness.SendCommandAsync("echo $MY_SPLIT_VAR");
+
+        // Value should be just "aaa", not "aaa;echo SPLIT_MARKER"
+        output.ShouldBe("aaa");
+    }
+
+    [Test]
     public async Task PipedInput_ExecutesMultipleCommands()
     {
         var (output, exitCode) = await RunPipedAsync("echo hello\necho world\n");

@@ -23,6 +23,17 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
 
     public async Task<ShellResult> ExecuteAsync(string input)
     {
+        // Split chain FIRST (quote-aware) so that expanded values containing
+        // operators like ; are not misinterpreted as command separators.
+        var chain = SplitChain(input);
+        if (chain.Count > 1)
+            return await ExecuteChainAsync(chain);
+
+        return await ExpandAndExecuteAsync(input);
+    }
+
+    private async Task<ShellResult> ExpandAndExecuteAsync(string input)
+    {
         input = ExpandAlias(input);
         input = ExpandEnvironmentVariables(input);
         input = await ExpandCommandSubstitutionsAsync(input);
@@ -42,11 +53,6 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
             if (command.Length > 0)
                 return LaunchBackgroundJob(command);
         }
-
-        // Split by command chaining operators (&&, ||, ;)
-        var chain = SplitChain(input);
-        if (chain.Count > 1)
-            return await ExecuteChainAsync(chain);
 
         return await ExecuteSingleAsync(input);
     }
@@ -201,7 +207,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
             if (string.IsNullOrWhiteSpace(command))
                 continue;
 
-            lastResult = await ExecuteSingleAsync(command);
+            lastResult = await ExpandAndExecuteAsync(command);
             var success = lastResult.Error == null;
 
             switch (op)

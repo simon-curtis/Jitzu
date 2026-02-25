@@ -101,6 +101,7 @@ public class BuiltinCommands
         var whereCommand = new WhereCommand(_context);
         var neofetchCommand = new NeofetchCommand(_context);
         var upgradeCommand = new UpgradeCommand(_context);
+        var pathCommand = new PathCommand(_context);
 
         // Register commands in dictionary
         _commands = new()
@@ -177,7 +178,8 @@ public class BuiltinCommands
             ["sudo"] = _sudo.ExecuteAsync,
             ["where"] = whereCommand.ExecuteAsync,
             ["neofetch"] = neofetchCommand.ExecuteAsync,
-            ["upgrade"] = upgradeCommand.ExecuteAsync
+            ["upgrade"] = upgradeCommand.ExecuteAsync,
+            ["path"] = pathCommand.ExecuteAsync
         };
 
         // Platform-specific: On Windows, use our built-in ls instead of external command
