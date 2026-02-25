@@ -378,6 +378,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
             }
 
             var output = await process.StandardOutput.ReadToEndAsync();
+            // stdout is redirected — child runs non-interactively, so Ctrl+C suppression is not needed.
             await process.WaitForExitAsync();
 
             return new ShellResult(ResultType.OsCommand, output.TrimEnd(), null);
@@ -622,7 +623,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
             return new ShellResult(ResultType.Error, "", new Exception(jobId.HasValue ? $"No such job: {jobId}" : "No active jobs"));
 
         Console.WriteLine($"[{job.Id}]  {job.Command}");
-        await job.Process.WaitForExitAsync();
+        await job.Process.WaitForExitSuppressingCancelAsync();
 
         // Show captured output
         if (!string.IsNullOrWhiteSpace(job.Output))
@@ -828,7 +829,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
             if (process == null)
                 return new ShellResult(ResultType.Error, "", new Exception($"Failed to start shell pipeline"));
 
-            await process.WaitForExitAsync();
+            await process.WaitForExitSuppressingCancelAsync();
             return new ShellResult(ResultType.OsCommand, "", null);
         }
         catch (Exception ex)
@@ -905,7 +906,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
                 );
             }
 
-            await process.WaitForExitAsync();
+            await process.WaitForExitSuppressingCancelAsync();
 
             // Return empty output since we let the command write directly to console
             return new ShellResult(ResultType.OsCommand, "", null);
@@ -1052,6 +1053,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
                 return "";
 
             var output = await process.StandardOutput.ReadToEndAsync();
+            // stdout is redirected — child runs non-interactively, so Ctrl+C suppression is not needed.
             await process.WaitForExitAsync();
             return output;
         }
@@ -1352,7 +1354,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
                 catch (IOException) { } // broken pipe — receiver quit early
             });
 
-            await process.WaitForExitAsync();
+            await process.WaitForExitSuppressingCancelAsync();
             return new ShellResult(ResultType.OsCommand, "", null);
         }
         catch (Exception ex)
@@ -1485,7 +1487,8 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
             yield return line;
         }
 
-        // Wait for process to complete (unless cancelled)
+        // stdout is redirected — child is not the console foreground group,
+        // so it will not receive SIGINT from Ctrl+C. No suppression needed.
         if (!cancellationToken.IsCancellationRequested)
             await process.WaitForExitAsync(cancellationToken);
     }
@@ -1552,6 +1555,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
         foreach (var line in lines)
             yield return line;
     }
+
 }
 
 public record ShellResult(ResultType Type, string? Output, Exception? Error);

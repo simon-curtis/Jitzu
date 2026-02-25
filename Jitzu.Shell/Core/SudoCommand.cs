@@ -223,7 +223,7 @@ public class SudoCommand
                 return new ShellResult(ResultType.Error, null,
                     new Exception("sudo: failed to start /usr/bin/sudo"));
 
-            await process.WaitForExitAsync();
+            await process.WaitForExitSuppressingCancelAsync();
             return new ShellResult(ResultType.Jitzu, null,
                 process.ExitCode != 0 ? new Exception($"sudo: command exited with code {process.ExitCode}") : null);
         }
