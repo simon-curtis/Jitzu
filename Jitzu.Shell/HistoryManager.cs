@@ -5,21 +5,27 @@ public class HistoryManager
     private static readonly HashSet<string> IgnoredCommands = ["exit", "clear"];
 
     private readonly string _historyFile;
-    private List<string> _history = [];
-    private readonly HashSet<string> _historySet = [];
+    private readonly bool _persist;
+    private readonly LinkedList<string> _history = new();
+    private readonly Dictionary<string, LinkedListNode<string>> _historyIndex = new();
 
     public int Count => _history.Count;
-    public IEnumerable<char> this[int historyIndex] => _history[historyIndex];
+    public IEnumerable<char> this[int historyIndex] => GetEntry(historyIndex);
 
-    public HistoryManager()
+    public HistoryManager(bool persist = true)
     {
+        _persist = persist;
         var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Jitzu");
-        Directory.CreateDirectory(appData);
+        if (_persist)
+            Directory.CreateDirectory(appData);
         _historyFile = Path.Combine(appData, "history.txt");
     }
 
     public async Task InitialiseAsync()
     {
+        if (!_persist)
+            return;
+
         if (!File.Exists(_historyFile))
         {
             await File.WriteAllTextAsync(_historyFile, "");
@@ -39,8 +45,12 @@ public class HistoryManager
         }
 
         deduplicated.Reverse();
-        _history = deduplicated;
-        _historySet.UnionWith(_history);
+
+        foreach (var entry in deduplicated)
+        {
+            var node = _history.AddLast(entry);
+            _historyIndex[entry] = node;
+        }
     }
 
     public int SearchBackward(string query, int startIndex)
@@ -48,41 +58,56 @@ public class HistoryManager
         if (string.IsNullOrEmpty(query))
             return -1;
 
-        for (var i = startIndex; i >= 0; i--)
+        var node = GetNodeAt(startIndex);
+        var index = startIndex;
+
+        while (node is not null)
         {
-            if (_history[i].Contains(query, StringComparison.OrdinalIgnoreCase))
-                return i;
+            if (node.Value.Contains(query, StringComparison.OrdinalIgnoreCase))
+                return index;
+
+            node = node.Previous;
+            index--;
         }
 
         return -1;
     }
 
-    public string GetEntry(int index) => _history[index];
+    public string GetEntry(int index)
+    {
+        var node = GetNodeAt(index);
+        return node?.Value ?? throw new ArgumentOutOfRangeException(nameof(index));
+    }
 
     public List<string> GetPredictions(string prefix, int maxCount)
     {
         if (string.IsNullOrEmpty(prefix)) return [];
 
         var results = new List<string>(maxCount);
-        for (var i = _history.Count - 1; i >= 0 && results.Count < maxCount; i--)
+        var node = _history.Last;
+
+        while (node is not null && results.Count < maxCount)
         {
-            if (_history[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-                && !_history[i].Equals(prefix, StringComparison.OrdinalIgnoreCase)
-                && !IgnoredCommands.Contains(_history[i]))
-                results.Add(_history[i]);
+            if (node.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && !node.Value.Equals(prefix, StringComparison.OrdinalIgnoreCase)
+                && !IgnoredCommands.Contains(node.Value))
+                results.Add(node.Value);
+
+            node = node.Previous;
         }
+
         return results;
     }
 
     public async Task RemoveAsync(string entry)
     {
-        if (!_historySet.Remove(entry))
+        if (!_historyIndex.Remove(entry, out var node))
             return;
 
-        _history.Remove(entry);
+        _history.Remove(node);
 
-        // Rewrite the file without the removed entry
-        await File.WriteAllLinesAsync(_historyFile, _history);
+        if (_persist)
+            await File.WriteAllLinesAsync(_historyFile, _history);
     }
 
     public async Task WriteAsync(string historyItem)
@@ -90,13 +115,25 @@ public class HistoryManager
         if (string.IsNullOrWhiteSpace(historyItem))
             return;
 
-        // Update in-memory history
-        if (!_historySet.Add(historyItem))
-            _history.Remove(historyItem);
+        // Move existing entry to end, or add new
+        if (_historyIndex.TryGetValue(historyItem, out var existing))
+            _history.Remove(existing);
 
-        _history.Add(historyItem);
+        _historyIndex[historyItem] = _history.AddLast(historyItem);
 
-        // Append to file instead of rewriting entire history
-        await File.AppendAllTextAsync(_historyFile, historyItem + Environment.NewLine);
+        if (_persist)
+            await File.AppendAllTextAsync(_historyFile, historyItem + Environment.NewLine);
+    }
+
+    private LinkedListNode<string>? GetNodeAt(int index)
+    {
+        if (index < 0 || index >= _history.Count)
+            return null;
+
+        var node = _history.First;
+        for (var i = 0; i < index; i++)
+            node = node!.Next;
+
+        return node;
     }
 }

@@ -9,23 +9,9 @@ namespace Jitzu.Tests;
 /// </summary>
 public class StreamingIntegrationTests
 {
-    private string GetShellPath()
-    {
-        var shellProjectPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Jitzu.Shell", "bin", "Debug", "net10.0", "jz");
-
-        if (File.Exists(shellProjectPath))
-            return shellProjectPath;
-
-        var releasePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Jitzu.Shell", "bin", "Release", "net10.0", "jz");
-        if (File.Exists(releasePath))
-            return releasePath;
-
-        return "jz";
-    }
-
     private async Task<string> RunCommandAsync(string command)
     {
-        var shellPath = GetShellPath();
+        var shellPath = ShellTestHarness.GetShellPath();
         var startInfo = new ProcessStartInfo
         {
             FileName = shellPath,
@@ -40,9 +26,11 @@ public class StreamingIntegrationTests
         if (process == null)
             throw new Exception("Failed to start shell process");
 
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        var errorTask = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
+        var output = await outputTask;
+        var error = await errorTask;
 
         if (!string.IsNullOrWhiteSpace(error))
             throw new Exception($"Shell error: {error}");

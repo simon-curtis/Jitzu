@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Jitzu.Core;
 using Jitzu.Core.Language;
 using Jitzu.Core.Runtime;
@@ -12,12 +11,9 @@ namespace Jitzu.Tests;
 /// </summary>
 public static class InterpreterTestHarness
 {
-    private static readonly Lock ConsoleOutputLock = new();
-
     /// <summary>
     /// Executes a Jitzu source code string and returns the captured console output.
     /// </summary>
-    [SuppressMessage("TUnit", "TUnit0055")]
     public static async Task<string> RunAsync(string sourceCode, string[]? args = null)
     {
         var ast = new ScriptExpression
@@ -31,22 +27,19 @@ public static class InterpreterTestHarness
 
         var script = new ByteCodeCompiler(program).Compile(ast.Body);
 
-        lock (ConsoleOutputLock)
+        // Capture output via async-local override — no global lock needed
+        using var writer = new StringWriter { NewLine = "\n" };
+        GlobalFunctions.SetOutput(writer);
+        try
         {
-            var oldOut = Console.Out;
-            using var writer = new StringWriter();
-            Console.SetOut(writer);
-            try
-            {
-                var interpreter = new ByteCodeInterpreter(program, script, args ?? [], false);
-                interpreter.Evaluate();
-            }
-            finally
-            {
-                Console.SetOut(oldOut);
-            }
-
-            return writer.ToString().TrimEnd();
+            var interpreter = new ByteCodeInterpreter(program, script, args ?? [], false);
+            interpreter.Evaluate();
         }
+        finally
+        {
+            GlobalFunctions.SetOutput(null);
+        }
+
+        return writer.ToString().TrimEnd();
     }
 }

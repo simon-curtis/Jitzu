@@ -30,6 +30,9 @@ public partial class JitzuOptions
     [Arg(Long = "sudo-preserve-env")]
     public bool SudoPreserveEnv { get; init; }
 
+    [Arg(Long = "persist", Negation = true, Help = "Disable reading/writing history and alias files")]
+    public bool Persist { get; init; } = true;
+
     // Interpreter options
     [Arg(Short = 'd', Long = "debug")]
     public bool Debug { get; init; }

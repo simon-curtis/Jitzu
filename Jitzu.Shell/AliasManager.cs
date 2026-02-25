@@ -4,19 +4,22 @@ public class AliasManager
 {
     private readonly string _aliasFile;
     private readonly Dictionary<string, string> _aliases = new(StringComparer.OrdinalIgnoreCase);
+    private readonly bool _persist;
 
     public IReadOnlyDictionary<string, string> Aliases => _aliases;
 
-    public AliasManager()
+    public AliasManager(bool persist = true)
     {
+        _persist = persist;
         var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Jitzu");
-        Directory.CreateDirectory(appData);
+        if (_persist)
+            Directory.CreateDirectory(appData);
         _aliasFile = Path.Combine(appData, "aliases.txt");
     }
 
     public async Task InitialiseAsync()
     {
-        if (!File.Exists(_aliasFile))
+        if (!_persist || !File.Exists(_aliasFile))
             return;
 
         var lines = await File.ReadAllLinesAsync(_aliasFile);
@@ -52,6 +55,9 @@ public class AliasManager
 
     public async Task SaveAsync()
     {
+        if (!_persist)
+            return;
+
         var lines = new List<string>(_aliases.Count);
         foreach (var (name, value) in _aliases.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase))
             lines.Add($"{name}={value}");

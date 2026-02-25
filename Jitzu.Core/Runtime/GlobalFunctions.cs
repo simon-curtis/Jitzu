@@ -6,6 +6,19 @@ namespace Jitzu.Core.Runtime;
 
 public static class GlobalFunctions
 {
+    private static readonly AsyncLocal<TextWriter?> OutputOverride = new();
+
+    /// <summary>
+    /// Gets the current output writer. Returns the async-local override if set, otherwise Console.Out.
+    /// </summary>
+    public static TextWriter Output => OutputOverride.Value ?? Console.Out;
+
+    /// <summary>
+    /// Redirects print output to the given writer for the current async context.
+    /// Call with null to restore default Console.Out behavior.
+    /// </summary>
+    public static void SetOutput(TextWriter? writer) => OutputOverride.Value = writer;
+
     public static object Or(this object instance, object fallback)
     {
         return instance switch
@@ -18,16 +31,17 @@ public static class GlobalFunctions
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void PrintStatic(params object?[] objects)
     {
+        var output = Output;
         switch (objects.Length)
         {
             case 0:
-                Console.WriteLine();
+                output.WriteLine();
                 break;
             case 1:
-                Console.WriteLine(ValueFormatter.Format(objects[0]));
+                output.WriteLine(ValueFormatter.Format(objects[0]));
                 break;
             default:
-                Console.WriteLine(ValueFormatter.Format(objects));
+                output.WriteLine(ValueFormatter.Format(objects));
                 break;
         }
     }

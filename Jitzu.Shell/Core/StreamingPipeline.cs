@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Jitzu.Core.Runtime;
 
 namespace Jitzu.Shell.Core;
 
@@ -332,7 +333,7 @@ public static class StreamingPipeFunctions
 
             await foreach (var line in stream.WithCancellation(cancellationToken))
             {
-                Console.WriteLine(line);
+                GlobalFunctions.Output.WriteLine(line);
 
                 if (fileWriter != null)
                     await fileWriter.WriteLineAsync(line);

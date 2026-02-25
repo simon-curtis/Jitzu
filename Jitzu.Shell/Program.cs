@@ -42,7 +42,7 @@ if (options.InstallPath)
 // 3. -c "command" → execute via Shell's ExecutionStrategy
 if (options.Command is { } command)
 {
-    await ExecuteCommand(command);
+    await ExecuteCommand(command, options.Persist);
     return;
 }
 
@@ -165,11 +165,11 @@ static ScriptExpression ParseProgram(FileInfo entryPoint)
     }
 }
 
-static async Task ExecuteCommand(string command)
+static async Task ExecuteCommand(string command, bool persist)
 {
     var theme = await ThemeConfig.LoadAsync();
     var session = await ShellSession.CreateAsync();
-    var aliasManager = new AliasManager();
+    var aliasManager = new AliasManager(persist);
     await aliasManager.InitialiseAsync();
     var labelManager = new LabelManager();
     var builtins = new BuiltinCommands(session, theme, aliasManager, labelManager);
@@ -188,8 +188,9 @@ static async Task RunReplAsync(JitzuOptions options)
     // Initialize session and components
     var theme = await ThemeConfig.LoadAsync();
     var session = await ShellSession.CreateAsync();
-    var history = new HistoryManager();
-    var aliasManager = new AliasManager();
+    var persist = options.Persist;
+    var history = new HistoryManager(persist);
+    var aliasManager = new AliasManager(persist);
     var labelManager = new LabelManager();
     var builtins = new BuiltinCommands(session, theme, aliasManager, labelManager, history);
     var strategy = new ExecutionStrategy(session, builtins, aliasManager, labelManager);
@@ -241,77 +242,91 @@ static async Task RunReplAsync(JitzuOptions options)
         isElevated = principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 
+    // When stdin is redirected (piped input), skip the interactive prompt and read lines directly
+    var isInteractive = !Console.IsInputRedirected;
+
     // Main REPL loop
     while (true)
     {
         try
         {
-            // Notify about completed background jobs
-            var jobNotice = strategy.CheckCompletedJobs();
-            if (jobNotice is not null)
-                Console.WriteLine(jobNotice);
+            string? line;
 
-            var dir = Environment.CurrentDirectory.Replace(userProfilePath, "~");
-
-            // Trims path to root of Git repository
-            var gitRepoRoot = FindGitRepoFolder(Environment.CurrentDirectory);
-            if (gitRepoRoot is not null)
-                dir = dir.Replace(gitRepoRoot.FullName, gitRepoRoot.Name);
-
-            var branchSuffix = "";
-            if (gitRepoRoot is not null)
+            if (!isInteractive)
             {
-                var branch = GetGitBranch(gitRepoRoot.FullName);
-                if (branch is not null)
+                line = Console.ReadLine();
+                if (line is null)
+                    return;
+            }
+            else
+            {
+                // Notify about completed background jobs
+                var jobNotice = strategy.CheckCompletedJobs();
+                if (jobNotice is not null)
+                    Console.WriteLine(jobNotice);
+
+                var dir = Environment.CurrentDirectory.Replace(userProfilePath, "~");
+
+                // Trims path to root of Git repository
+                var gitRepoRoot = FindGitRepoFolder(Environment.CurrentDirectory);
+                if (gitRepoRoot is not null)
+                    dir = dir.Replace(gitRepoRoot.FullName, gitRepoRoot.Name);
+
+                var branchSuffix = "";
+                if (gitRepoRoot is not null)
                 {
-                    var status = GetGitStatus(gitRepoRoot.FullName);
+                    var branch = GetGitBranch(gitRepoRoot.FullName);
+                    if (branch is not null)
+                    {
+                        var status = await GetGitStatusAsync(gitRepoRoot.FullName);
 
-                    var indicators = new StringBuilder();
-                    if (status.HasDirty) indicators.Append($"{theme["git.dirty"]}*{ThemeConfig.Reset}");
-                    if (status.HasStaged) indicators.Append($"{theme["git.staged"]}+{ThemeConfig.Reset}");
-                    if (status.HasUntracked) indicators.Append($"{theme["git.untracked"]}?{ThemeConfig.Reset}");
-                    var statusStr = indicators.Length > 0 ? $" {indicators}" : "";
+                        var indicators = new StringBuilder();
+                        if (status.HasDirty) indicators.Append($"{theme["git.dirty"]}*{ThemeConfig.Reset}");
+                        if (status.HasStaged) indicators.Append($"{theme["git.staged"]}+{ThemeConfig.Reset}");
+                        if (status.HasUntracked) indicators.Append($"{theme["git.untracked"]}?{ThemeConfig.Reset}");
+                        var statusStr = indicators.Length > 0 ? $" {indicators}" : "";
 
-                    var remoteParts = new StringBuilder();
-                    if (status.Ahead > 0) remoteParts.Append($"↑{status.Ahead}");
-                    if (status.Behind > 0) remoteParts.Append($"↓{status.Behind}");
-                    var remoteStr = remoteParts.Length > 0 ? $" {theme["git.remote"]}{remoteParts}{ThemeConfig.Reset}" : "";
+                        var remoteParts = new StringBuilder();
+                        if (status.Ahead > 0) remoteParts.Append($"↑{status.Ahead}");
+                        if (status.Behind > 0) remoteParts.Append($"↓{status.Behind}");
+                        var remoteStr = remoteParts.Length > 0 ? $" {theme["git.remote"]}{remoteParts}{ThemeConfig.Reset}" : "";
 
-                    branchSuffix = $" {theme["git.branch"]}({branch}){ThemeConfig.Reset}{statusStr}{remoteStr}";
+                        branchSuffix = $" {theme["git.branch"]}({branch}){ThemeConfig.Reset}{statusStr}{remoteStr}";
+                    }
                 }
+
+                // Build line 1: user@host dir (branch)*+? ↑1          HH:mm
+                var elevatedTag = isElevated ? $" {theme["prompt.error"]}[sudo]{ThemeConfig.Reset}" : "";
+                var leftPart = $"{theme["prompt.user"]}{user}@{host}{ThemeConfig.Reset} {theme["prompt.directory"]}{dir}{ThemeConfig.Reset}{branchSuffix}{elevatedTag}";
+                var visibleLeft = Markup.Remove(leftPart).Length;
+                var timeStr = DateTime.Now.ToString("HH:mm");
+                var bufferWidth = Console.BufferWidth;
+                var padding = Math.Max(1, bufferWidth - visibleLeft - timeStr.Length);
+                var line1 = $"{leftPart}{new string(' ', padding)}{theme["prompt.time"]}{timeStr}{ThemeConfig.Reset}";
+
+                // Build line 2 (optional): [N] took Xs
+                var line2Parts = new StringBuilder();
+                var activeJobs = strategy.Jobs.Count(j => !j.Process.HasExited);
+                if (activeJobs > 0)
+                    line2Parts.Append($"{theme["prompt.jobs"]}[{activeJobs}]{ThemeConfig.Reset} ");
+
+                if (lastCommandDuration.TotalSeconds >= 2)
+                {
+                    var durationStr = lastCommandDuration.TotalMinutes >= 1
+                        ? $"{(int)lastCommandDuration.TotalMinutes}m {lastCommandDuration.Seconds}s"
+                        : $"{(int)lastCommandDuration.TotalSeconds}s";
+                    line2Parts.Append($"{theme["prompt.duration"]}took {durationStr}{ThemeConfig.Reset}");
+                }
+
+                var line2 = line2Parts.Length > 0 ? $"{line2Parts}\n" : "";
+
+                // Build line 3: arrow colored by last command success
+                var arrowColor = lastCommandSuccess ? theme["prompt.arrow"] : theme["prompt.error"];
+                var promptChar = isElevated ? "#" : ">";
+
+                var prompt = $"{line1}\n{line2}{arrowColor}{ThemeConfig.Bold}{promptChar}{ThemeConfig.Reset} ";
+                line = readLine.Read(prompt);
             }
-
-            // Build line 1: user@host dir (branch)*+? ↑1          HH:mm
-            var elevatedTag = isElevated ? $" {theme["prompt.error"]}[sudo]{ThemeConfig.Reset}" : "";
-            var leftPart = $"{theme["prompt.user"]}{user}@{host}{ThemeConfig.Reset} {theme["prompt.directory"]}{dir}{ThemeConfig.Reset}{branchSuffix}{elevatedTag}";
-            var visibleLeft = Markup.Remove(leftPart).Length;
-            var timeStr = DateTime.Now.ToString("HH:mm");
-            var bufferWidth = Console.BufferWidth;
-            var padding = Math.Max(1, bufferWidth - visibleLeft - timeStr.Length);
-            var line1 = $"{leftPart}{new string(' ', padding)}{theme["prompt.time"]}{timeStr}{ThemeConfig.Reset}";
-
-            // Build line 2 (optional): [N] took Xs
-            var line2Parts = new StringBuilder();
-            var activeJobs = strategy.Jobs.Count(j => !j.Process.HasExited);
-            if (activeJobs > 0)
-                line2Parts.Append($"{theme["prompt.jobs"]}[{activeJobs}]{ThemeConfig.Reset} ");
-
-            if (lastCommandDuration.TotalSeconds >= 2)
-            {
-                var durationStr = lastCommandDuration.TotalMinutes >= 1
-                    ? $"{(int)lastCommandDuration.TotalMinutes}m {lastCommandDuration.Seconds}s"
-                    : $"{(int)lastCommandDuration.TotalSeconds}s";
-                line2Parts.Append($"{theme["prompt.duration"]}took {durationStr}{ThemeConfig.Reset}");
-            }
-
-            var line2 = line2Parts.Length > 0 ? $"{line2Parts}\n" : "";
-
-            // Build line 3: arrow colored by last command success
-            var arrowColor = lastCommandSuccess ? theme["prompt.arrow"] : theme["prompt.error"];
-            var promptChar = isElevated ? "#" : ">";
-
-            var prompt = $"{line1}\n{line2}{arrowColor}{ThemeConfig.Bold}{promptChar}{ThemeConfig.Reset} ";
-            var line = readLine.Read(prompt);
 
             if (line is "exit")
                 return;
@@ -319,7 +334,8 @@ static async Task RunReplAsync(JitzuOptions options)
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            await history.WriteAsync(line);
+            if (isInteractive)
+                await history.WriteAsync(line);
 
             var sw = Stopwatch.StartNew();
             var result = await strategy.ExecuteAsync(line);
@@ -357,7 +373,7 @@ static async Task HandleElevatedEntry(JitzuOptions options)
         // Mode 1: Run single command elevated, then exit
         var theme = await ThemeConfig.LoadAsync();
         var session = await ShellSession.CreateAsync();
-        var aliasManager = new AliasManager();
+        var aliasManager = new AliasManager(options.Persist);
         await aliasManager.InitialiseAsync();
         var labelManager = new LabelManager();
         var builtins = new BuiltinCommands(session, theme, aliasManager, labelManager);
@@ -455,21 +471,22 @@ static void CleanupOldBinary()
 /// <returns>The path to the root of the Git repository or null if not found</returns>
 static DirectoryInfo? FindGitRepoFolder(string path)
 {
-    var directoryInfo = new DirectoryInfo(path);
-    var gitPath = Path.Combine(directoryInfo.FullName, ".git");
+    var dir = new DirectoryInfo(path);
+    for (var depth = 0; depth < 64 && dir is not null; depth++, dir = dir.Parent)
+    {
+        var gitPath = Path.Combine(dir.FullName, ".git");
+        if (Directory.Exists(gitPath) || File.Exists(gitPath))
+            return dir;
+    }
 
-    if (Directory.Exists(gitPath) || File.Exists(gitPath))
-        return directoryInfo;
-
-    var parent = directoryInfo.Parent;
-    return parent is not null ? FindGitRepoFolder(parent.FullName) : null;
+    return null;
 }
 
 /// <summary>
 /// Gets git working tree status by running `git status --porcelain --branch`.
 /// Returns indicators for dirty, staged, untracked files and ahead/behind counts.
 /// </summary>
-static (bool HasStaged, bool HasDirty, bool HasUntracked, int Ahead, int Behind) GetGitStatus(string gitRepoPath)
+static async Task<(bool HasStaged, bool HasDirty, bool HasUntracked, int Ahead, int Behind)> GetGitStatusAsync(string gitRepoPath)
 {
     try
     {
@@ -477,6 +494,7 @@ static (bool HasStaged, bool HasDirty, bool HasUntracked, int Ahead, int Behind)
         {
             FileName = "git",
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
             WorkingDirectory = gitRepoPath,
@@ -489,8 +507,11 @@ static (bool HasStaged, bool HasDirty, bool HasUntracked, int Ahead, int Behind)
         if (process is null)
             return default;
 
-        var output = process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        var errorTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        var output = await outputTask;
+        await errorTask;
 
         if (process.ExitCode != 0)
             return default;
