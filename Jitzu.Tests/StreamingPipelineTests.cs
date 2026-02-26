@@ -79,6 +79,103 @@ public class StreamingPipelineTests
     }
 
     [Test]
+    public async Task GrepAsync_IsCaseSensitiveByDefault()
+    {
+        // Arrange - input has "Line" with capital L
+        var lines = GenerateLinesAsync(["Line 1", "line 2", "LINE 3", "Line 4"]);
+
+        // Act
+        var result = new List<string>();
+        await foreach (var line in StreamingPipeFunctions.GrepAsync(lines, "Line"))
+        {
+            result.Add(line);
+        }
+
+        // Assert - only "Line" (exact case) should match
+        result.Count.ShouldBe(2);
+        result.ShouldContain("Line 1");
+        result.ShouldContain("Line 4");
+        result.ShouldNotContain("line 2");
+        result.ShouldNotContain("LINE 3");
+    }
+
+    [Test]
+    public async Task GrepAsync_WithIgnoreCase_MatchesAllCasings()
+    {
+        // Arrange
+        var lines = GenerateLinesAsync(["Line 1", "line 2", "LINE 3", "other 4"]);
+
+        // Act
+        var result = new List<string>();
+        await foreach (var line in StreamingPipeFunctions.GrepAsync(lines, "line", ignoreCase: true))
+        {
+            result.Add(line);
+        }
+
+        // Assert - all three case variants should match
+        result.Count.ShouldBe(3);
+        result.ShouldContain("Line 1");
+        result.ShouldContain("line 2");
+        result.ShouldContain("LINE 3");
+    }
+
+    [Test]
+    public async Task GrepAsync_UsesRegexMatching()
+    {
+        // Arrange - regex pattern that only substring matching could not handle
+        var lines = GenerateLinesAsync(["Line 1", "Line 10", "Line 2", "foo bar"]);
+
+        // Act - anchor to end of string: "Line [0-9]$" matches only single-digit lines
+        var result = new List<string>();
+        await foreach (var line in StreamingPipeFunctions.GrepAsync(lines, @"Line [0-9]$"))
+        {
+            result.Add(line);
+        }
+
+        // Assert - only "Line 1" and "Line 2" match (not "Line 10")
+        result.Count.ShouldBe(2);
+        result.ShouldContain("Line 1");
+        result.ShouldContain("Line 2");
+        result.ShouldNotContain("Line 10");
+    }
+
+    [Test]
+    public async Task GrepAsync_WithInvalidRegex_FallsBackToLiteralMatch()
+    {
+        // Arrange - "[invalid" is an invalid regex pattern
+        var lines = GenerateLinesAsync(["has [invalid] text", "no match here", "[invalid more"]);
+
+        // Act - should not throw; falls back to literal substring match
+        var result = new List<string>();
+        await foreach (var line in StreamingPipeFunctions.GrepAsync(lines, "[invalid"))
+        {
+            result.Add(line);
+        }
+
+        // Assert - literal substring "[invalid" matches two lines
+        result.Count.ShouldBe(2);
+        result.ShouldContain("has [invalid] text");
+        result.ShouldContain("[invalid more");
+    }
+
+    [Test]
+    public async Task GrepAsync_WithEmptyPattern_YieldsNothing()
+    {
+        // Arrange
+        var lines = GenerateLinesAsync(["Line 1", "Line 2", "Line 3"]);
+
+        // Act
+        var result = new List<string>();
+        await foreach (var line in StreamingPipeFunctions.GrepAsync(lines, ""))
+        {
+            result.Add(line);
+        }
+
+        // Assert - empty pattern should match nothing (not everything)
+        result.Count.ShouldBe(0);
+    }
+
+    [Test]
     public async Task HeadAsync_ReturnsFirstNLines()
     {
         // Arrange

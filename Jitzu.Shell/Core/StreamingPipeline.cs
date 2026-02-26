@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Jitzu.Core.Runtime;
 
 namespace Jitzu.Shell.Core;
@@ -167,17 +168,52 @@ public static class StreamingPipeFunctions
     }
 
     /// <summary>
-    /// Filters lines containing the pattern (case-insensitive).
+    /// Filters lines matching the pattern using regex (case-sensitive by default).
+    /// Falls back to literal substring matching when the pattern is not a valid regex.
     /// Streams results as matches are found.
     /// </summary>
     public static async IAsyncEnumerable<string> GrepAsync(
         IAsyncEnumerable<string> stream,
         string pattern,
+        bool ignoreCase = false,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(pattern))
+            yield break;
+
+        var regexOptions = ignoreCase
+            ? RegexOptions.Compiled | RegexOptions.IgnoreCase
+            : RegexOptions.Compiled;
+
+        Regex? compiledRegex = null;
+        try
+        {
+            compiledRegex = new Regex(pattern, regexOptions, TimeSpan.FromMilliseconds(250));
+        }
+        catch (ArgumentException)
+        {
+            // Invalid regex — fall back to literal substring matching below
+        }
+
+        var stringComparison = ignoreCase
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
         await foreach (var line in stream.WithCancellation(cancellationToken))
         {
-            if (line.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            bool isMatch;
+            try
+            {
+                isMatch = compiledRegex != null
+                    ? compiledRegex.IsMatch(line)
+                    : line.Contains(pattern, stringComparison);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                continue; // Skip lines that cause catastrophic backtracking
+            }
+
+            if (isMatch)
                 yield return line;
         }
     }

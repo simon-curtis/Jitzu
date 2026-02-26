@@ -1223,6 +1223,26 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
         return input;
     }
 
+    /// <summary>
+    /// Extracts the pattern from grep args: the first argument that is not a flag.
+    /// </summary>
+    private static string ParseGrepPattern(object[] args)
+    {
+        foreach (var arg in args)
+        {
+            var s = arg.ToString()!;
+            if (!s.StartsWith('-'))
+                return s;
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// Returns true if the -i / --ignore-case flag is present in grep args.
+    /// </summary>
+    private static bool ParseGrepIgnoreCase(object[] args) =>
+        args.Any(a => a is "-i" or "--ignore-case");
+
     private static int ParseLineCount(object[] args)
     {
         for (var i = 0; i < args.Length; i++)
@@ -1513,7 +1533,7 @@ public class ExecutionStrategy(ShellSession session, BuiltinCommands builtins, A
             "first" => StreamingPipeFunctions.FirstAsync(stream, cancellationToken),
             "last" => StreamingPipeFunctions.LastAsync(stream, cancellationToken),
             "nth" => StreamingPipeFunctions.NthAsync(stream, args.Length > 0 ? Convert.ToInt32(args[0]) : 0, cancellationToken),
-            "grep" => StreamingPipeFunctions.GrepAsync(stream, args.Length > 0 ? args[0].ToString()! : "", cancellationToken),
+            "grep" => StreamingPipeFunctions.GrepAsync(stream, ParseGrepPattern(args), ParseGrepIgnoreCase(args), cancellationToken),
             "head" => StreamingPipeFunctions.HeadAsync(stream, ParseLineCount(args), cancellationToken),
             "tail" => StreamingPipeFunctions.TailAsync(stream, ParseLineCount(args), cancellationToken),
             "sort" => StreamingPipeFunctions.SortAsync(stream, args.Any(a => a is "-r" or "--reverse"), cancellationToken),
