@@ -9,7 +9,7 @@ namespace Jitzu.Shell.UI;
 /// <summary>
 /// Custom readline implementation with history navigation and basic line editing.
 /// </summary>
-public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandler? completionHandler = null)
+public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandler? completionHandler = null, Func<string, bool>? predictionFilter = null)
 {
     private static readonly SearchValues<char> BoundaryValues = SearchValues.Create("\\/ ");
 
@@ -832,7 +832,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             return;
 
         var text = new string(_buffer.ToArray());
-        _predictions = history.GetPredictions(text, MaxPredictions);
+        _predictions = history.GetPredictions(text, MaxPredictions, predictionFilter);
         _dropdownIndex = -1;
 
         _ghostText = null;
