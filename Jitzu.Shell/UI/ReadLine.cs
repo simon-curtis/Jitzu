@@ -13,6 +13,43 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 {
     private static readonly SearchValues<char> BoundaryValues = SearchValues.Create("\\/ ");
 
+    /// <summary>
+    /// Calculates the visual cursor position after rendering plain text in a terminal,
+    /// accounting for both explicit newlines and line wrapping at the buffer width boundary.
+    /// Uses the delayed-wrap (pending newline/xenl) model: writing the character at the
+    /// last column sets a pending wrap that only fires when the next character is processed.
+    /// A newline after a full-width line produces a single row advance, not two.
+    /// </summary>
+    internal static (int RowOffset, int Column) CalculateVisualPosition(ReadOnlySpan<char> visibleText, int bufferWidth)
+    {
+        if (bufferWidth <= 0)
+            return (0, 0);
+
+        var row = 0;
+        var col = 0;
+
+        foreach (var ch in visibleText)
+        {
+            if (ch == '\n')
+            {
+                row++;
+                col = 0;
+            }
+            else
+            {
+                if (col == bufferWidth)
+                {
+                    row++;
+                    col = 0;
+                }
+
+                col++;
+            }
+        }
+
+        return (row, col);
+    }
+
     private static readonly HashSet<string> JitzuKeywords =
     [
         "let", "mut", "if", "else", "while", "for", "fun", "return", "match",
@@ -76,8 +113,9 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
         _cursorPos = 0;
         _promptRow = Console.CursorTop;
-        _bufferRow = _promptRow + prompt.Count('\n');
-        _bufferColumn = Markup.Remove(prompt.Split('\n').Last()).Length;
+        var (rowOffset, column) = CalculateVisualPosition(Markup.Remove(prompt), Console.BufferWidth);
+        _bufferRow = _promptRow + rowOffset;
+        _bufferColumn = column;
 
         RedrawLine();
 
@@ -595,23 +633,26 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             sb.Write(HighlightBuffer(bufferView));
         }
 
-        // for (var i = lineDeficit; i > 0; i--)
-        // {
-        //     _promptRow--;
-        //     Console.WriteLine();
-        // }
-
         Console.CursorVisible = false;
         Console.SetCursorPosition(0, _promptRow);
         Console.Write(sb.WrittenSpan);
 
-        var newlineCount = sb.WrittenSpan.Count('\n');
+        var bufferWidth = Console.BufferWidth;
+        var (totalVisualRows, _) = CalculateVisualPosition(Markup.Remove(sb.WrittenSpan), bufferWidth);
 
-        if (_promptRow == Console.CursorTop)
+        // Detect auto-scroll: if the cursor ended up lower than expected, the console scrolled
+        var expectedEndRow = _promptRow + totalVisualRows;
+        var actualEndRow = Console.CursorTop;
+        if (actualEndRow < expectedEndRow)
         {
-            _promptRow -= newlineCount;
-            _bufferRow -= newlineCount;
+            var scrollAmount = expectedEndRow - actualEndRow;
+            _promptRow = Math.Max(0, _promptRow - scrollAmount);
         }
+
+        // Recalculate buffer start position from prompt visual layout (handles resize + wrapping)
+        var (promptRows, promptCol) = CalculateVisualPosition(Markup.Remove(_prompt), bufferWidth);
+        _bufferRow = _promptRow + promptRows;
+        _bufferColumn = promptCol;
 
         // Render ghost text (inline dimmed suffix from top prediction or selected dropdown item)
         var ghostLen = 0;
@@ -630,11 +671,14 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
         DrawDropdown();
 
-        var targetRow = _bufferRow;
-        if (targetRow >= Console.BufferHeight)
-            targetRow = Console.BufferHeight - 1;
+        // Calculate cursor position accounting for input text wrapping
+        var totalInputCol = _bufferColumn + _cursorPos;
+        var cursorRow = _bufferRow + totalInputCol / bufferWidth;
+        var cursorCol = totalInputCol % bufferWidth;
 
-        Console.SetCursorPosition(_bufferColumn + _cursorPos, targetRow);
+        cursorRow = Math.Clamp(cursorRow, 0, Console.BufferHeight - 1);
+
+        Console.SetCursorPosition(cursorCol, cursorRow);
         Console.CursorVisible = true;
     }
 
@@ -1079,9 +1123,14 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             Console.Write(blankStr);
         }
 
-        // Reposition cursor back to the input line so output doesn't leave blank gaps
-        var restoreRow = _bufferRow < Console.BufferHeight ? _bufferRow : Console.BufferHeight - 1;
-        Console.SetCursorPosition(_bufferColumn + _buffer.Count, restoreRow);
+        // Reposition cursor back to the input line accounting for wrapping
+        var totalCol = _bufferColumn + _buffer.Count;
+        var bufferWidth = Console.BufferWidth;
+        var restoreRow = _bufferRow + totalCol / bufferWidth;
+        var restoreCol = totalCol % bufferWidth;
+        if (restoreRow >= Console.BufferHeight)
+            restoreRow = Console.BufferHeight - 1;
+        Console.SetCursorPosition(restoreCol, restoreRow);
 
         _dropdownLinesDrawn = 0;
     }
