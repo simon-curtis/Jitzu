@@ -79,7 +79,7 @@ public class HistoryManager
         return node?.Value ?? throw new ArgumentOutOfRangeException(nameof(index));
     }
 
-    public List<string> GetPredictions(string prefix, int maxCount)
+    public List<string> GetPredictions(string prefix, int maxCount, Func<string, bool>? filter = null)
     {
         if (string.IsNullOrEmpty(prefix)) return [];
 
@@ -90,7 +90,8 @@ public class HistoryManager
         {
             if (node.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
                 && !node.Value.Equals(prefix, StringComparison.OrdinalIgnoreCase)
-                && !IgnoredCommands.Contains(node.Value))
+                && !IgnoredCommands.Contains(node.Value)
+                && (filter is null || filter(node.Value)))
                 results.Add(node.Value);
 
             node = node.Previous;
