@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Jitzu.Shell.Core.Commands;
 
@@ -16,38 +17,7 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
 
         try
         {
-            var ignoreCase = false;
-            var showLineNumbers = false;
-            var recursive = false;
-            var countOnly = false;
-            string? pattern = null;
-            var files = new List<string>();
-
-            for (var i = 0; i < args.Length; i++)
-            {
-                var arg = args.Span[i];
-                if (arg.StartsWith('-') && pattern == null)
-                {
-                    foreach (var ch in arg.AsSpan(1))
-                    {
-                        switch (ch)
-                        {
-                            case 'i': ignoreCase = true; break;
-                            case 'n': showLineNumbers = true; break;
-                            case 'r': recursive = true; break;
-                            case 'c': countOnly = true; break;
-                        }
-                    }
-                }
-                else if (pattern == null)
-                {
-                    pattern = arg;
-                }
-                else
-                {
-                    files.Add(arg);
-                }
-            }
+            var (ignoreCase, showLineNumbers, recursive, countOnly, pattern, files) = ParseArgs(args);
 
             if (pattern == null)
                 return new ShellResult(ResultType.Error, "", new Exception("No pattern specified"));
@@ -62,7 +32,8 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
                 files.Add(".");
             }
 
-            var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var matchRegex = BuildMatchRegex(pattern, ignoreCase);
+            var fallbackComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             var sb = new StringBuilder();
             var matchColor = Theme["error"]; // red for matches, like real grep
             var fileColor = Theme["ls.code"];
@@ -106,8 +77,22 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
                 for (var lineIdx = 0; lineIdx < lines.Length; lineIdx++)
                 {
                     var line = lines[lineIdx];
-                    var matchIdx = line.IndexOf(pattern, comparison);
-                    if (matchIdx < 0) continue;
+
+                    MatchCollection? lineMatches;
+                    bool hasMatch;
+                    try
+                    {
+                        lineMatches = matchRegex?.Matches(line);
+                        hasMatch = matchRegex != null
+                            ? lineMatches!.Count > 0
+                            : line.Contains(pattern, fallbackComparison);
+                    }
+                    catch (RegexMatchTimeoutException)
+                    {
+                        continue; // Skip lines that cause catastrophic backtracking
+                    }
+
+                    if (!hasMatch) continue;
 
                     fileMatchCount++;
 
@@ -121,21 +106,7 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
                     if (showLineNumbers)
                         lineBuilder.Append($"{lineNumColor}{lineIdx + 1}{reset}:");
 
-                    // Highlight all matches in the line
-                    var remaining = line;
-                    while (true)
-                    {
-                        var idx = remaining.IndexOf(pattern, comparison);
-                        if (idx < 0)
-                        {
-                            lineBuilder.Append(remaining);
-                            break;
-                        }
-
-                        lineBuilder.Append(remaining[..idx]);
-                        lineBuilder.Append($"{matchColor}{ThemeConfig.Bold}{remaining[idx..(idx + pattern.Length)]}{reset}");
-                        remaining = remaining[(idx + pattern.Length)..];
-                    }
+                    AppendHighlightedLine(lineBuilder, line, pattern, lineMatches, fallbackComparison, matchColor, reset);
 
                     sb.AppendLine(lineBuilder.ToString());
                 }
@@ -167,37 +138,7 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
         if (args.Length == 0)
             yield break;
 
-        var ignoreCase = false;
-        var showLineNumbers = false;
-        var recursive = false;
-        string? pattern = null;
-        var files = new List<string>();
-
-        // Parse arguments
-        for (var i = 0; i < args.Length; i++)
-        {
-            var arg = args.Span[i];
-            if (arg.StartsWith('-') && pattern == null)
-            {
-                foreach (var ch in arg.AsSpan(1))
-                {
-                    switch (ch)
-                    {
-                        case 'i': ignoreCase = true; break;
-                        case 'n': showLineNumbers = true; break;
-                        case 'r': recursive = true; break;
-                    }
-                }
-            }
-            else if (pattern == null)
-            {
-                pattern = arg;
-            }
-            else
-            {
-                files.Add(arg);
-            }
-        }
+        var (ignoreCase, showLineNumbers, recursive, _, pattern, files) = ParseArgs(args);
 
         if (pattern == null)
             yield break;
@@ -207,7 +148,8 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
         else if (files.Count == 0)
             yield break;
 
-        var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var matchRegex = BuildMatchRegex(pattern, ignoreCase);
+        var fallbackComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         var matchColor = Theme["error"];
         var fileColor = Theme["ls.code"];
         var lineNumColor = ThemeConfig.Dim;
@@ -243,13 +185,26 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
             var lineIdx = 0;
 
             using var reader = new StreamReader(filePath);
-            while (!cancellationToken.IsCancellationRequested 
+            while (!cancellationToken.IsCancellationRequested
                    && await reader.ReadLineAsync(cancellationToken) is { } line)
             {
                 lineIdx++;
 
-                var matchIdx = line.IndexOf(pattern, comparison);
-                if (matchIdx < 0)
+                MatchCollection? lineMatches;
+                bool hasMatch;
+                try
+                {
+                    lineMatches = matchRegex?.Matches(line);
+                    hasMatch = matchRegex != null
+                        ? lineMatches!.Count > 0
+                        : line.Contains(pattern, fallbackComparison);
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    continue; // Skip lines that cause catastrophic backtracking
+                }
+
+                if (!hasMatch)
                     continue;
 
                 var lineBuilder = new StringBuilder();
@@ -260,23 +215,116 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
                 if (showLineNumbers)
                     lineBuilder.Append($"{lineNumColor}{lineIdx}{reset}:");
 
-                // Highlight all matches in the line
-                var remaining = line;
-                while (true)
-                {
-                    var idx = remaining.IndexOf(pattern, comparison);
-                    if (idx < 0)
-                    {
-                        lineBuilder.Append(remaining);
-                        break;
-                    }
-
-                    lineBuilder.Append(remaining[..idx]);
-                    lineBuilder.Append($"{matchColor}{ThemeConfig.Bold}{remaining[idx..(idx + pattern.Length)]}{reset}");
-                    remaining = remaining[(idx + pattern.Length)..];
-                }
+                AppendHighlightedLine(lineBuilder, line, pattern, lineMatches, fallbackComparison, matchColor, reset);
 
                 yield return lineBuilder.ToString();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Parses grep arguments into flags, pattern, and file list.
+    /// Flags must appear before the pattern. Once a non-flag argument is encountered it becomes the pattern,
+    /// and all subsequent arguments are treated as file paths.
+    /// </summary>
+    private static (bool IgnoreCase, bool ShowLineNumbers, bool Recursive, bool CountOnly, string? Pattern, List<string> Files) ParseArgs(
+        ReadOnlyMemory<string> args)
+    {
+        var ignoreCase = false;
+        var showLineNumbers = false;
+        var recursive = false;
+        var countOnly = false;
+        string? pattern = null;
+        var files = new List<string>();
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            var arg = args.Span[i];
+            if (arg.StartsWith('-') && pattern == null)
+            {
+                foreach (var ch in arg.AsSpan(1))
+                {
+                    switch (ch)
+                    {
+                        case 'i': ignoreCase = true; break;
+                        case 'n': showLineNumbers = true; break;
+                        case 'r': recursive = true; break;
+                        case 'c': countOnly = true; break;
+                    }
+                }
+            }
+            else if (pattern == null)
+            {
+                pattern = arg;
+            }
+            else
+            {
+                files.Add(arg);
+            }
+        }
+
+        return (ignoreCase, showLineNumbers, recursive, countOnly, pattern, files);
+    }
+
+    /// <summary>
+    /// Builds a compiled regex for the given pattern, or returns null if the pattern is not a valid regex.
+    /// </summary>
+    private static Regex? BuildMatchRegex(string pattern, bool ignoreCase)
+    {
+        var options = ignoreCase
+            ? RegexOptions.Compiled | RegexOptions.IgnoreCase
+            : RegexOptions.Compiled;
+
+        try
+        {
+            return new Regex(pattern, options, TimeSpan.FromMilliseconds(250));
+        }
+        catch (ArgumentException)
+        {
+            return null; // Invalid regex — caller falls back to literal substring matching
+        }
+    }
+
+    /// <summary>
+    /// Appends the line to the builder with all matches highlighted.
+    /// Uses pre-computed regex matches when available; otherwise falls back to literal substring search.
+    /// </summary>
+    private static void AppendHighlightedLine(
+        StringBuilder lineBuilder,
+        string line,
+        string pattern,
+        MatchCollection? regexMatches,
+        StringComparison fallbackComparison,
+        string matchColor,
+        string reset)
+    {
+        if (regexMatches != null)
+        {
+            var lastIndex = 0;
+            foreach (Match match in regexMatches)
+            {
+                lineBuilder.Append(line[lastIndex..match.Index]);
+                lineBuilder.Append($"{matchColor}{ThemeConfig.Bold}{match.Value}{reset}");
+                lastIndex = match.Index + match.Length;
+            }
+            lineBuilder.Append(line[lastIndex..]);
+        }
+        else
+        {
+            // Literal fallback highlighting
+            var remaining = line;
+            while (true)
+            {
+                var idx = remaining.IndexOf(pattern, fallbackComparison);
+                if (idx < 0)
+                {
+                    lineBuilder.Append(remaining);
+                    break;
+                }
+
+                lineBuilder.Append(remaining[..idx]);
+                lineBuilder.Append($"{matchColor}{ThemeConfig.Bold}{remaining[idx..(idx + pattern.Length)]}{reset}");
+                remaining = remaining[(idx + pattern.Length)..];
             }
         }
     }
