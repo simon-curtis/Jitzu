@@ -12,6 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Jitzu.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AsmResolver.DotNet" Version="5.5.1" />
     <PackageReference Include="Clap.Net" Version="0.1.32-beta" />
     <PackageReference Include="CliWrap" Version="3.9.0" />
