@@ -102,6 +102,7 @@ public class BuiltinCommands
         var neofetchCommand = new NeofetchCommand(_context);
         var upgradeCommand = new UpgradeCommand(_context);
         var pathCommand = new PathCommand(_context);
+        var viewCommand = new ViewCommand(_context);
 
         // Register commands in dictionary
         _commands = new()
@@ -179,7 +180,8 @@ public class BuiltinCommands
             ["where"] = whereCommand.ExecuteAsync,
             ["neofetch"] = neofetchCommand.ExecuteAsync,
             ["upgrade"] = upgradeCommand.ExecuteAsync,
-            ["path"] = pathCommand.ExecuteAsync
+            ["path"] = pathCommand.ExecuteAsync,
+            ["view"] = viewCommand.ExecuteAsync
         };
 
         // Platform-specific: On Windows, use our built-in ls instead of external command

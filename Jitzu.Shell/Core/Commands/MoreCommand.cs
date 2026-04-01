@@ -43,6 +43,9 @@ public class MoreCommand : CommandBase
 
     private void RunPager(string[] lines)
     {
+        // Switch to alternate screen buffer so scrollback is preserved
+        Console.Write("\e[?1049h");
+
         var offset = 0;
         var searchTerm = "";
         var dim = ThemeConfig.Dim;
@@ -75,8 +78,8 @@ public class MoreCommand : CommandBase
                     line = sb.ToString();
                 }
 
-                // Truncate to terminal width (rough — doesn't account for ANSI codes)
-                Console.WriteLine(line.Length > width ? line[..width] : line);
+                // Truncate to terminal width, accounting for ANSI escape codes
+                Console.WriteLine(TruncateVisible(line, width));
             }
 
             // Status bar
@@ -100,7 +103,8 @@ public class MoreCommand : CommandBase
             {
                 case ConsoleKey.Q:
                 case ConsoleKey.Escape:
-                    Console.Clear();
+                    // Restore main screen buffer
+                    Console.Write("\e[?1049l");
                     return;
 
                 case ConsoleKey.DownArrow:
@@ -234,5 +238,40 @@ public class MoreCommand : CommandBase
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Truncates a string to a visible width, preserving ANSI escape sequences.
+    /// </summary>
+    private static string TruncateVisible(string line, int maxWidth)
+    {
+        var visible = 0;
+        var i = 0;
+
+        while (i < line.Length && visible < maxWidth)
+        {
+            if (line[i] == '\e' && i + 1 < line.Length && line[i + 1] == '[')
+            {
+                // Skip entire ANSI escape sequence
+                var end = line.IndexOf('m', i);
+                if (end >= 0)
+                {
+                    i = end + 1;
+                    continue;
+                }
+            }
+
+            visible++;
+            i++;
+        }
+
+        // Include any trailing ANSI resets so colors don't bleed
+        if (i < line.Length)
+        {
+            // Append a reset to close any open formatting
+            return string.Concat(line.AsSpan(0, i), "\e[0m");
+        }
+
+        return line;
     }
 }
