@@ -30,9 +30,42 @@ import CodeBlock from '@/components/CodeBlock.astro';
     <tr><td><code>rev file</code></td><td>Reverse characters in each line</td></tr>
     <tr><td><code>tac file</code></td><td>Print file with lines in reverse order</td></tr>
     <tr><td><code>paste [-d] file file</code></td><td>Merge lines from multiple files</td></tr>
+    <tr><td><code>view file</code></td><td>View file in pager with markdown rendering</td></tr>
     <tr><td><code>more/less</code></td><td>Paginated output viewer</td></tr>
   </tbody>
 </table>
+
+## view
+
+Open a file in the interactive pager. Markdown files (`.md`, `.markdown`) are rendered with ANSI formatting — headers, bold, italic, inline code, code blocks, tables, lists, blockquotes, links, and horizontal rules all render with colors and box-drawing characters.
+
+Non-markdown files are displayed as plain text.
+
+<CodeBlock language="shell" code={`> view README.md
+┌──────────┬────────┬───────┐
+│ Name     │ Type   │ Size  │
+├──────────┼────────┼───────┤
+│ Parser   │ Core   │ 2.4K  │
+│ Lexer    │ Core   │ 1.8K  │
+└──────────┴────────┴───────┘`} />
+
+Navigation is the same as `more`/`less` — arrow keys, `j`/`k`, Page Up/Down, `/` to search, `q` to quit. The pager uses the alternate screen buffer so your scrollback history is preserved.
+
+### Supported Markdown
+
+| Element | Syntax |
+|---------|--------|
+| Headers | `#`, `##`, `###` — bold with distinct colors |
+| Bold | `**text**` |
+| Italic | `*text*` |
+| Inline code | `` `code` `` |
+| Code blocks | Fenced with ` ``` ` |
+| Tables | Pipe-delimited with box-drawing borders |
+| Bullet lists | `- item` rendered with `•` |
+| Numbered lists | `1. item` |
+| Blockquotes | `> text` with `│` bar |
+| Links | `[text](url)` — text underlined, URL dimmed |
+| Horizontal rules | `---` rendered as `─` line |
 
 ## grep
 
