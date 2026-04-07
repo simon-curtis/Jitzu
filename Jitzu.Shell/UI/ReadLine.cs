@@ -90,8 +90,22 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
     private int _dropdownLinesDrawn;
     private bool _dropdownIsCompletions;
 
+    // Tracks total visual rows drawn so we can clear stale lines on shrink
+    private int _previousVisualRows;
+
+    // Queued lines from multi-line paste
+    private readonly Queue<string> _pastedLines = new();
+
     public string Read(string prompt)
     {
+        // Return queued lines from a previous multi-line paste
+        if (_pastedLines.TryDequeue(out var queued))
+        {
+            Console.Write(prompt);
+            Console.WriteLine(queued);
+            return queued;
+        }
+
         _buffer = [];
         _cancelPressed = false;
         _completions = null;
@@ -110,6 +124,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         _dropdownWindowStart = 0;
         _dropdownLinesDrawn = 0;
         _dropdownIsCompletions = false;
+        _previousVisualRows = 0;
 
         _cursorPos = 0;
         _promptRow = Console.CursorTop;
@@ -188,6 +203,15 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
                 switch (key.Key)
                 {
+                    case ConsoleKey.Enter when key.Modifiers.HasFlag(ConsoleModifiers.Shift):
+                        ClearCompletions();
+                        DeleteSelection();
+                        _buffer.Insert(_cursorPos, '\n');
+                        _cursorPos++;
+                        UpdatePredictions();
+                        RedrawLine();
+                        break;
+
                     case ConsoleKey.Enter:
                         if (_dropdownIndex >= 0 && _dropdownIndex < _dropdownItems.Count)
                         {
@@ -448,6 +472,33 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                         while (Console.KeyAvailable)
                             incomingBuffer.Add(Console.ReadKey(true).KeyChar);
 
+                        // Split pasted text on newlines — execute first line, queue the rest
+                        var pasted = new string(incomingBuffer.ToArray());
+                        var lines = pasted.Split(["\r\n", "\n", "\r"], StringSplitOptions.None);
+
+                        if (lines.Length > 1)
+                        {
+                            // Insert first line into current buffer
+                            ClearCompletions();
+                            DeleteSelection();
+                            var firstLineChars = lines[0].ToCharArray();
+                            _buffer.InsertRange(_cursorPos, firstLineChars);
+                            _cursorPos += firstLineChars.Length;
+                            RedrawLine();
+
+                            // Queue remaining non-empty lines for subsequent reads
+                            for (var i = 1; i < lines.Length; i++)
+                            {
+                                if (lines[i].Length > 0)
+                                    _pastedLines.Enqueue(lines[i]);
+                            }
+
+                            // Auto-execute like other shells do
+                            DismissDropdown();
+                            Console.WriteLine();
+                            return new string(_buffer.ToArray());
+                        }
+
                         ClearCompletions();
                         DeleteSelection();
                         _buffer.InsertRange(_cursorPos, incomingBuffer);
@@ -662,6 +713,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             ghostLen = _ghostText.Length;
         }
 
+        // Clear remainder of current line
         if (Console.BufferWidth - Console.CursorLeft is var remainder and > 0)
         {
             Span<char> blankSpace = stackalloc char[remainder];
@@ -669,12 +721,37 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             Console.Write(blankSpace.ToString());
         }
 
+        // Clear any stale rows left over from a previously taller buffer (e.g. after deleting a newline)
+        var currentEndRow = Console.CursorTop;
+        var previousEndRow = _promptRow + _previousVisualRows;
+        for (var row = currentEndRow + 1; row <= previousEndRow && row < Console.BufferHeight; row++)
+        {
+            Console.SetCursorPosition(0, row);
+            Span<char> blank = stackalloc char[bufferWidth];
+            blank.Fill(' ');
+            Console.Write(blank.ToString());
+        }
+
+        _previousVisualRows = totalVisualRows;
+
         DrawDropdown();
 
-        // Calculate cursor position accounting for input text wrapping
-        var totalInputCol = _bufferColumn + _cursorPos;
-        var cursorRow = _bufferRow + totalInputCol / bufferWidth;
-        var cursorCol = totalInputCol % bufferWidth;
+        // Calculate cursor position accounting for newlines and wrapping
+        var textBeforeCursor = bufferView[.._cursorPos];
+        var (cursorRowOffset, cursorColFromLineStart) = CalculateVisualPosition(textBeforeCursor, bufferWidth);
+        int cursorRow, cursorCol;
+        if (cursorRowOffset > 0)
+        {
+            // Cursor is on a continuation line — column is independent of prompt
+            cursorRow = _bufferRow + cursorRowOffset;
+            cursorCol = cursorColFromLineStart;
+        }
+        else
+        {
+            // Cursor is still on the first line — offset from prompt column
+            cursorRow = _bufferRow + (_bufferColumn + cursorColFromLineStart) / bufferWidth;
+            cursorCol = (_bufferColumn + cursorColFromLineStart) % bufferWidth;
+        }
 
         cursorRow = Math.Clamp(cursorRow, 0, Console.BufferHeight - 1);
 
@@ -1150,11 +1227,13 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         {
             var ch = buffer[pos];
 
-            // Whitespace
-            if (ch is ' ' or '\t')
+            // Whitespace (including newlines from Shift+Enter)
+            if (ch is ' ' or '\t' or '\n' or '\r')
             {
                 AppendWithSelection(sb, ch, pos, hasSelection, selStart, selEnd, selBg, selFg, null);
                 pos++;
+                if (ch is '\n')
+                    commandPos = true;
                 continue;
             }
 
@@ -1248,7 +1327,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             // Word: consume until delimiter
             var wordStart = pos;
             while (pos < buffer.Length
-                   && buffer[pos] is not (' ' or '\t' or '"' or '\'' or '`'
+                   && buffer[pos] is not (' ' or '\t' or '\n' or '\r' or '"' or '\'' or '`'
                        or '|' or '(' or ')' or '{' or '}' or '[' or ']' or ';'
                        or '&' or '>' or '<')
                    && !(buffer[pos] == '$' && pos + 1 < buffer.Length && buffer[pos + 1] == '('))
