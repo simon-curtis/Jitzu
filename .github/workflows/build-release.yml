@@ -278,7 +278,7 @@ jobs:
           git push
 
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v3
+        uses: KSXGitHub/github-actions-deploy-aur@v4
         with:
           pkgname: jz-bin
           pkgbuild: packaging/arch/PKGBUILD
