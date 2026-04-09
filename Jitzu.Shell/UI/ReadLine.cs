@@ -68,6 +68,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
     private int _historyIndex;
     private int? _selectionStart;
     private string _prompt = "";
+    private string _promptPlain = "";
     private int _promptRow;
     private int _bufferRow;
     private int _bufferColumn;
@@ -96,6 +97,9 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
     // Tracks total visual rows drawn so we can clear stale lines on shrink
     private int _previousVisualRows;
 
+    // Reused StringBuilder for syntax highlighting (avoids allocation per keystroke)
+    private readonly StringBuilder _highlightSb = new();
+
     // Queued lines from multi-line paste
     private readonly Queue<string> _pastedLines = new();
 
@@ -120,6 +124,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         _searchBuffer = [];
         _savedBuffer = null;
         _prompt = prompt;
+        _promptPlain = Markup.Remove(prompt);
         _predictions = [];
         _ghostText = null;
         _dropdownItems = [];
@@ -131,7 +136,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
         _cursorPos = 0;
         _promptRow = Console.CursorTop;
-        var (rowOffset, column) = CalculateVisualPosition(Markup.Remove(prompt), Console.BufferWidth);
+        var (rowOffset, column) = CalculateVisualPosition(_promptPlain, Console.BufferWidth);
         _bufferRow = _promptRow + rowOffset;
         _bufferColumn = column;
 
@@ -678,11 +683,11 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         if (_selectionStart != null)
         {
             var (start, end) = GetRangeFromCursor(_cursorPos, _selectionStart.Value);
-            sb.Write(HighlightBuffer(bufferView, start, end));
+            HighlightBuffer(sb, bufferView, start, end);
         }
         else
         {
-            sb.Write(HighlightBuffer(bufferView));
+            HighlightBuffer(sb, bufferView);
         }
 
         Console.CursorVisible = false;
@@ -702,7 +707,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         }
 
         // Recalculate buffer start position from prompt visual layout (handles resize + wrapping)
-        var (promptRows, promptCol) = CalculateVisualPosition(Markup.Remove(_prompt), bufferWidth);
+        var (promptRows, promptCol) = CalculateVisualPosition(_promptPlain, bufferWidth);
         _bufferRow = _promptRow + promptRows;
         _bufferColumn = promptCol;
 
@@ -1212,11 +1217,12 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         _dropdownLinesDrawn = 0;
     }
 
-    private string HighlightBuffer(ReadOnlySpan<char> buffer, int selStart = -1, int selEnd = -1)
+    private void HighlightBuffer(ArrayBufferWriter<char> output, ReadOnlySpan<char> buffer, int selStart = -1, int selEnd = -1)
     {
-        if (buffer.IsEmpty) return "";
+        if (buffer.IsEmpty) return;
 
-        var sb = new StringBuilder(buffer.Length + 64);
+        _highlightSb.Clear();
+        var sb = _highlightSb;
         var pos = 0;
         var commandPos = true;
         var hasSelection = selStart >= 0 && selEnd >= 0;
@@ -1349,7 +1355,8 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             commandPos = false;
         }
 
-        return sb.ToString();
+        foreach (var chunk in sb.GetChunks())
+            output.Write(chunk.Span);
     }
 
     private static void AppendWithSelection(StringBuilder sb, char ch, int pos,

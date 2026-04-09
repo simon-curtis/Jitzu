@@ -88,9 +88,12 @@ public static partial class Markup
         };
     }
 
+    [ThreadStatic] private static StringBuilder? _removeSb;
+
     public static string Remove(ReadOnlySpan<char> input)
     {
-        var sb = new StringBuilder();
+        var sb = _removeSb ??= new StringBuilder();
+        sb.Clear();
         foreach (var range in AnsiCodeRegex.EnumerateSplits(input))
             sb.Append(input[range]);
 
