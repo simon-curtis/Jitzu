@@ -233,6 +233,7 @@ static async Task RunReplAsync(JitzuOptions options)
     var lastCommandDuration = TimeSpan.Zero;
     var user = Environment.UserName;
     var host = Environment.MachineName;
+    var gitCache = new GitStatusCache();
 
     // Detect if running elevated (for prompt indicator)
     var isElevated = false;
@@ -269,14 +270,14 @@ static async Task RunReplAsync(JitzuOptions options)
                 var dir = Environment.CurrentDirectory.Replace(userProfilePath, "~");
 
                 // Trims path to root of Git repository
-                var gitRepoRoot = FindGitRepoFolder(Environment.CurrentDirectory);
+                var gitRepoRoot = gitCache.FindGitRepoFolder(Environment.CurrentDirectory);
                 if (gitRepoRoot is not null)
                     dir = dir.Replace(gitRepoRoot.FullName, gitRepoRoot.Name);
 
                 var branchSuffix = "";
                 if (gitRepoRoot is not null)
                 {
-                    var branch = GetGitBranch(gitRepoRoot.FullName);
+                    var branch = gitCache.GetGitBranch(gitRepoRoot.FullName);
                     if (branch is not null)
                     {
                         var status = await GetGitStatusAsync(gitRepoRoot.FullName);
@@ -466,24 +467,6 @@ static void CleanupOldBinary()
 }
 
 /// <summary>
-/// Detects if the current directory is inside a Git repository by climbing the parent directories
-/// until it finds a .git directory or root.
-/// </summary>
-/// <returns>The path to the root of the Git repository or null if not found</returns>
-static DirectoryInfo? FindGitRepoFolder(string path)
-{
-    var dir = new DirectoryInfo(path);
-    for (var depth = 0; depth < 64 && dir is not null; depth++, dir = dir.Parent)
-    {
-        var gitPath = Path.Combine(dir.FullName, ".git");
-        if (Directory.Exists(gitPath) || File.Exists(gitPath))
-            return dir;
-    }
-
-    return null;
-}
-
-/// <summary>
 /// Gets git working tree status by running `git status --porcelain --branch`.
 /// Returns indicators for dirty, staged, untracked files and ahead/behind counts.
 /// </summary>
@@ -569,46 +552,6 @@ static async Task<(bool HasStaged, bool HasDirty, bool HasUntracked, int Ahead, 
     catch
     {
         return default;
-    }
-}
-
-/// <summary>
-/// Reads the current git branch name by parsing .git/HEAD directly.
-/// Returns branch name, short SHA for detached HEAD, or null on error.
-/// </summary>
-static string? GetGitBranch(string gitRepoPath)
-{
-    try
-    {
-        var gitPath = Path.Combine(gitRepoPath, ".git");
-
-        // Handle worktrees: .git may be a file containing "gitdir: <path>"
-        if (File.Exists(gitPath))
-        {
-            var gitdirLine = File.ReadAllText(gitPath).Trim();
-            if (gitdirLine.StartsWith("gitdir:"))
-                gitPath = gitdirLine["gitdir:".Length..].Trim();
-        }
-
-        var headPath = Path.Combine(gitPath, "HEAD");
-        if (!File.Exists(headPath))
-            return null;
-
-        var headContent = File.ReadAllText(headPath).Trim();
-
-        // Symbolic ref: "ref: refs/heads/branch-name"
-        if (headContent.StartsWith("ref: refs/heads/"))
-            return headContent["ref: refs/heads/".Length..];
-
-        // Detached HEAD: return short SHA
-        if (headContent.Length >= 7)
-            return headContent[..7];
-
-        return null;
-    }
-    catch
-    {
-        return null;
     }
 }
 
