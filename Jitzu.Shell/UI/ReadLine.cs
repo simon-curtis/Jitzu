@@ -118,6 +118,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         // Return queued lines from a previous multi-line paste
         if (_pastedLines.TryDequeue(out var queued))
         {
+            Console.Write("\e[?25h");
             Console.Write(prompt);
             Console.WriteLine(queued);
             return queued;
@@ -151,6 +152,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         _bufferColumn = column;
 
         RedrawLine();
+        Console.Write("\e[?25h"); // show cursor now that prompt is rendered
 
         List<char>? tempBuffer = null;
         ClearCompletions();

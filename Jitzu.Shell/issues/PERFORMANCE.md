@@ -13,14 +13,4 @@
 | 7 | `FindGitRepoFolder` directory walk every prompt | Solved by #1 |
 | 8 | `GetGitBranch` double file read every prompt | Solved by #1 |
 | 9 | PATH enumeration on every tab press | `_pathDirectoryCache` — file names cached per PATH directory, invalidated by directory mtime |
-
-## Remaining
-
-### #10 — Prompt string allocations every render
-
-**File:** `Program.cs:284-329`
-**Hotness:** Per prompt (every REPL iteration)
-
-The prompt builder creates multiple `StringBuilder` instances and a `new string(' ', padding)` allocation on every prompt render. Low impact since it's once per command, not per keystroke.
-
-**Fix:** Reuse a field-level `StringBuilder`; replace padding string with stackalloc span.
+| 10 | Prompt builder allocates 3 StringBuilders + padding string every render | Single reusable `promptSb` cleared between uses; `cachedPadding` string reused when width unchanged |

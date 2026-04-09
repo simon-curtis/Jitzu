@@ -234,6 +234,8 @@ static async Task RunReplAsync(JitzuOptions options)
     var user = Environment.UserName;
     var host = Environment.MachineName;
     var gitCache = new GitStatusCache();
+    var promptSb = new StringBuilder();
+    var cachedPadding = "";
 
     // Detect if running elevated (for prompt indicator)
     var isElevated = false;
@@ -262,6 +264,8 @@ static async Task RunReplAsync(JitzuOptions options)
             }
             else
             {
+                Console.Write("\e[?25l"); // hide cursor during prompt build + render
+
                 // Notify about completed background jobs
                 var jobNotice = strategy.CheckCompletedJobs();
                 if (jobNotice is not null)
@@ -282,16 +286,16 @@ static async Task RunReplAsync(JitzuOptions options)
                     {
                         var status = await GetGitStatusAsync(gitRepoRoot.FullName);
 
-                        var indicators = new StringBuilder();
-                        if (status.HasDirty) indicators.Append($"{theme["git.dirty"]}*{ThemeConfig.Reset}");
-                        if (status.HasStaged) indicators.Append($"{theme["git.staged"]}+{ThemeConfig.Reset}");
-                        if (status.HasUntracked) indicators.Append($"{theme["git.untracked"]}?{ThemeConfig.Reset}");
-                        var statusStr = indicators.Length > 0 ? $" {indicators}" : "";
+                        promptSb.Clear();
+                        if (status.HasDirty) promptSb.Append($"{theme["git.dirty"]}*{ThemeConfig.Reset}");
+                        if (status.HasStaged) promptSb.Append($"{theme["git.staged"]}+{ThemeConfig.Reset}");
+                        if (status.HasUntracked) promptSb.Append($"{theme["git.untracked"]}?{ThemeConfig.Reset}");
+                        var statusStr = promptSb.Length > 0 ? $" {promptSb}" : "";
 
-                        var remoteParts = new StringBuilder();
-                        if (status.Ahead > 0) remoteParts.Append($"↑{status.Ahead}");
-                        if (status.Behind > 0) remoteParts.Append($"↓{status.Behind}");
-                        var remoteStr = remoteParts.Length > 0 ? $" {theme["git.remote"]}{remoteParts}{ThemeConfig.Reset}" : "";
+                        promptSb.Clear();
+                        if (status.Ahead > 0) promptSb.Append($"↑{status.Ahead}");
+                        if (status.Behind > 0) promptSb.Append($"↓{status.Behind}");
+                        var remoteStr = promptSb.Length > 0 ? $" {theme["git.remote"]}{promptSb}{ThemeConfig.Reset}" : "";
 
                         branchSuffix = $" {theme["git.branch"]}({branch}){ThemeConfig.Reset}{statusStr}{remoteStr}";
                     }
@@ -304,23 +308,25 @@ static async Task RunReplAsync(JitzuOptions options)
                 var timeStr = DateTime.Now.ToString("HH:mm");
                 var bufferWidth = Console.BufferWidth;
                 var padding = Math.Max(1, bufferWidth - visibleLeft - timeStr.Length);
-                var line1 = $"{leftPart}{new string(' ', padding)}{theme["prompt.time"]}{timeStr}{ThemeConfig.Reset}";
+                if (cachedPadding.Length != padding)
+                    cachedPadding = new string(' ', padding);
+                var line1 = $"{leftPart}{cachedPadding}{theme["prompt.time"]}{timeStr}{ThemeConfig.Reset}";
 
                 // Build line 2 (optional): [N] took Xs
-                var line2Parts = new StringBuilder();
+                promptSb.Clear();
                 var activeJobs = strategy.Jobs.Count(j => !j.Process.HasExited);
                 if (activeJobs > 0)
-                    line2Parts.Append($"{theme["prompt.jobs"]}[{activeJobs}]{ThemeConfig.Reset} ");
+                    promptSb.Append($"{theme["prompt.jobs"]}[{activeJobs}]{ThemeConfig.Reset} ");
 
                 if (lastCommandDuration.TotalSeconds >= 2)
                 {
                     var durationStr = lastCommandDuration.TotalMinutes >= 1
                         ? $"{(int)lastCommandDuration.TotalMinutes}m {lastCommandDuration.Seconds}s"
                         : $"{(int)lastCommandDuration.TotalSeconds}s";
-                    line2Parts.Append($"{theme["prompt.duration"]}took {durationStr}{ThemeConfig.Reset}");
+                    promptSb.Append($"{theme["prompt.duration"]}took {durationStr}{ThemeConfig.Reset}");
                 }
 
-                var line2 = line2Parts.Length > 0 ? $"{line2Parts}\n" : "";
+                var line2 = promptSb.Length > 0 ? $"{promptSb}\n" : "";
 
                 // Build line 3: arrow colored by last command success
                 var arrowColor = lastCommandSuccess ? theme["prompt.arrow"] : theme["prompt.error"];
