@@ -2,7 +2,10 @@
 using CliWrap;
 using CliWrap.Buffered;
 using Jitzu.Benchmarking.Addons;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Jitzu.Benchmarking.Benchmarks;
 
@@ -30,14 +33,22 @@ public class Benchmark
 
         if (_config.AddOns?.WebServer is { } webServerAddon)
         {
-            var webBuilder = new WebHostBuilder();
-            webBuilder.UseKestrel(options => { options.ListenLocalhost(webServerAddon.Port); });
-            webBuilder.UseStartup<Startup>();
-            var webHost = webBuilder.Build();
+            var webAppBuilder = WebApplication.CreateBuilder();
+            webAppBuilder.WebHost.ConfigureKestrel(options => options.ListenLocalhost(webServerAddon.Port));
+            webAppBuilder.Services.AddRouting();
+            var webApp = webAppBuilder.Build();
+            webApp.UseRouting();
+            webApp.MapGet("/Hello/{name}", (string name) => Results.Json(
+                new TestRecord
+                {
+                    Id = Guid.NewGuid(),
+                    Name = name,
+                    Something = Random.Shared.Next()
+                }));
 
             Console.WriteLine("Starting webserver");
-            await webHost.StartAsync();
-            disposables.Add(webHost);
+            await webApp.StartAsync();
+            disposables.Add(webApp);
         }
 
         if (_config.Runs is { Length: > 0 } runs)

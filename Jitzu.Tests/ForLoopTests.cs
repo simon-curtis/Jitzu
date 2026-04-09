@@ -85,7 +85,7 @@ public class ForLoopTests
                               """;
 
         var ex = await Assert.ThrowsAsync<JitzuException>(async () => await InterpreterTestHarness.RunAsync(source));
-        ex.Message.ShouldContain("Cannot assign to 'items' while iterating over it");
+        ex!.Message.ShouldContain("Cannot assign to 'items' while iterating over it");
     }
 
     [Test]
@@ -116,7 +116,7 @@ public class ForLoopTests
                               """;
 
         var ex = await Assert.ThrowsAsync<JitzuException>(async () => await InterpreterTestHarness.RunAsync(source));
-        ex.Message.ShouldContain("Cannot assign to 'items' while iterating over it");
+        ex!.Message.ShouldContain("Cannot assign to 'items' while iterating over it");
     }
 
     [Test]

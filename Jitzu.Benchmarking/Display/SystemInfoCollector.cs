@@ -80,35 +80,47 @@ public static class SystemInfoCollector
 
     private static string GetProcessorInfo()
     {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return $"CPU information unavailable, " +
+                   $"{Environment.ProcessorCount} logical cores";
+        }
+
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT Name, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor");
-
-            foreach (ManagementObject processor in searcher.Get())
-            {
-                var name = processor["Name"]?.ToString()?.Trim();
-                var maxClockSpeed = Convert.ToUInt32(processor["MaxClockSpeed"]);
-                var physicalCores = Convert.ToInt32(processor["NumberOfCores"]);
-                var logicalCores = Convert.ToInt32(processor["NumberOfLogicalProcessors"]);
-
-                // Clean up processor name
-                name = CleanProcessorName(name);
-
-                // Get architecture info
-                var architecture = GetProcessorArchitecture(name);
-
-                var clockSpeedGHz = maxClockSpeed / 1000.0;
-
-                return $"{name} CPU {clockSpeedGHz:F2}GHz ({architecture}), " +
-                       $"1 CPU, {logicalCores} logical and {physicalCores} physical cores";
-            }
+            return GetProcessorInfoWindows();
         }
         catch
         {
             // Fallback
             return $"CPU information unavailable, " +
                    $"{Environment.ProcessorCount} logical cores";
+        }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static string GetProcessorInfoWindows()
+    {
+        using var searcher = new ManagementObjectSearcher(
+            "SELECT Name, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor");
+
+        foreach (ManagementObject processor in searcher.Get())
+        {
+            var name = processor["Name"]?.ToString()?.Trim();
+            var maxClockSpeed = Convert.ToUInt32(processor["MaxClockSpeed"]);
+            var physicalCores = Convert.ToInt32(processor["NumberOfCores"]);
+            var logicalCores = Convert.ToInt32(processor["NumberOfLogicalProcessors"]);
+
+            // Clean up processor name
+            name = CleanProcessorName(name ?? "Unknown");
+
+            // Get architecture info
+            var architecture = GetProcessorArchitecture(name);
+
+            var clockSpeedGHz = maxClockSpeed / 1000.0;
+
+            return $"{name} CPU {clockSpeedGHz:F2}GHz ({architecture}), " +
+                   $"1 CPU, {logicalCores} logical and {physicalCores} physical cores";
         }
 
         return "Unknown CPU";

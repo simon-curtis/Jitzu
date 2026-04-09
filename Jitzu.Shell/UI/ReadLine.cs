@@ -724,10 +724,10 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         // Clear any stale rows left over from a previously taller buffer (e.g. after deleting a newline)
         var currentEndRow = Console.CursorTop;
         var previousEndRow = _promptRow + _previousVisualRows;
+        Span<char> blank = stackalloc char[bufferWidth];
         for (var row = currentEndRow + 1; row <= previousEndRow && row < Console.BufferHeight; row++)
         {
             Console.SetCursorPosition(0, row);
-            Span<char> blank = stackalloc char[bufferWidth];
             blank.Fill(' ');
             Console.Write(blank.ToString());
         }
