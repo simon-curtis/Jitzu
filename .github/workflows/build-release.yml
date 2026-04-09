@@ -278,11 +278,6 @@ jobs:
           git push
 
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v4
-        with:
-          pkgname: jz-bin
-          pkgbuild: packaging/arch/PKGBUILD
-          commit_username: Simon Curtis
-          commit_email: simon@jitzu.dev
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to v${{ steps.version.outputs.version }}"
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: .github/scripts/publish-aur.sh "${{ steps.version.outputs.version }}" "${{ steps.hash.outputs.sha256 }}"
