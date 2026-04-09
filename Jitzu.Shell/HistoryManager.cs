@@ -6,11 +6,11 @@ public class HistoryManager
 
     private readonly string _historyFile;
     private readonly bool _persist;
-    private readonly LinkedList<string> _history = new();
-    private readonly Dictionary<string, LinkedListNode<string>> _historyIndex = new();
+    private readonly List<string> _history = [];
+    private readonly HashSet<string> _historySet = [];
 
     public int Count => _history.Count;
-    public IEnumerable<char> this[int historyIndex] => GetEntry(historyIndex);
+    public string this[int historyIndex] => _history[historyIndex];
 
     public HistoryManager(bool persist = true)
     {
@@ -48,8 +48,8 @@ public class HistoryManager
 
         foreach (var entry in deduplicated)
         {
-            var node = _history.AddLast(entry);
-            _historyIndex[entry] = node;
+            _history.Add(entry);
+            _historySet.Add(entry);
         }
     }
 
@@ -58,25 +58,13 @@ public class HistoryManager
         if (string.IsNullOrEmpty(query))
             return -1;
 
-        var node = GetNodeAt(startIndex);
-        var index = startIndex;
-
-        while (node is not null)
+        for (var i = Math.Min(startIndex, _history.Count - 1); i >= 0; i--)
         {
-            if (node.Value.Contains(query, StringComparison.OrdinalIgnoreCase))
-                return index;
-
-            node = node.Previous;
-            index--;
+            if (_history[i].Contains(query, StringComparison.OrdinalIgnoreCase))
+                return i;
         }
 
         return -1;
-    }
-
-    public string GetEntry(int index)
-    {
-        var node = GetNodeAt(index);
-        return node?.Value ?? throw new ArgumentOutOfRangeException(nameof(index));
     }
 
     public List<string> GetPredictions(ReadOnlySpan<char> prefix, int maxCount, Func<string, bool>? filter = null)
@@ -84,17 +72,15 @@ public class HistoryManager
         if (prefix.IsEmpty) return [];
 
         var results = new List<string>(maxCount);
-        var node = _history.Last;
 
-        while (node is not null && results.Count < maxCount)
+        for (var i = _history.Count - 1; i >= 0 && results.Count < maxCount; i--)
         {
-            if (node.Value.AsSpan().StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-                && !node.Value.AsSpan().Equals(prefix, StringComparison.OrdinalIgnoreCase)
-                && !IgnoredCommands.Contains(node.Value)
-                && (filter is null || filter(node.Value)))
-                results.Add(node.Value);
-
-            node = node.Previous;
+            var entry = _history[i];
+            if (entry.AsSpan().StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && !entry.AsSpan().Equals(prefix, StringComparison.OrdinalIgnoreCase)
+                && !IgnoredCommands.Contains(entry)
+                && (filter is null || filter(entry)))
+                results.Add(entry);
         }
 
         return results;
@@ -102,10 +88,10 @@ public class HistoryManager
 
     public async Task RemoveAsync(string entry)
     {
-        if (!_historyIndex.Remove(entry, out var node))
+        if (!_historySet.Remove(entry))
             return;
 
-        _history.Remove(node);
+        _history.Remove(entry);
 
         if (_persist)
             await File.WriteAllLinesAsync(_historyFile, _history);
@@ -117,24 +103,12 @@ public class HistoryManager
             return;
 
         // Move existing entry to end, or add new
-        if (_historyIndex.TryGetValue(historyItem, out var existing))
-            _history.Remove(existing);
+        if (!_historySet.Add(historyItem))
+            _history.Remove(historyItem);
 
-        _historyIndex[historyItem] = _history.AddLast(historyItem);
+        _history.Add(historyItem);
 
         if (_persist)
             await File.AppendAllTextAsync(_historyFile, historyItem + Environment.NewLine);
-    }
-
-    private LinkedListNode<string>? GetNodeAt(int index)
-    {
-        if (index < 0 || index >= _history.Count)
-            return null;
-
-        var node = _history.First;
-        for (var i = 0; i < index; i++)
-            node = node!.Next;
-
-        return node;
     }
 }

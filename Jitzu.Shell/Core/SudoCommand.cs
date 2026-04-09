@@ -193,7 +193,7 @@ public class SudoCommand
         if (_historyManager == null || _historyManager.Count < 2)
             return null;
 
-        return _historyManager.GetEntry(_historyManager.Count - 2);
+        return _historyManager[_historyManager.Count - 2];
     }
 
     private static string EscapeCommandArg(string command)

@@ -103,6 +103,16 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
     // Queued lines from multi-line paste
     private readonly Queue<string> _pastedLines = new();
 
+    /// <summary>
+    /// Replaces _buffer contents from a string using memcpy instead of char-by-char enumeration.
+    /// </summary>
+    private void SetBufferFromString(string value)
+    {
+        _buffer.Clear();
+        CollectionsMarshal.SetCount(_buffer, value.Length);
+        value.CopyTo(CollectionsMarshal.AsSpan(_buffer));
+    }
+
     public string Read(string prompt)
     {
         // Return queued lines from a previous multi-line paste
@@ -383,8 +393,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                             tempBuffer ??= _buffer;
 
                             _historyIndex--;
-                            _buffer.Clear();
-                            _buffer.AddRange(history[_historyIndex]);
+                            SetBufferFromString(history[_historyIndex]);
                             _cursorPos = _buffer.Count;
                             RedrawLine();
                         }
@@ -421,15 +430,18 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                         {
                             _historyIndex++;
 
-                            _buffer.Clear();
                             if (_historyIndex < history.Count)
                             {
-                                _buffer.AddRange(history[_historyIndex]);
+                                SetBufferFromString(history[_historyIndex]);
                             }
                             else if (tempBuffer != null)
                             {
                                 _buffer = tempBuffer;
                                 tempBuffer = null;
+                            }
+                            else
+                            {
+                                _buffer.Clear();
                             }
 
                             _cursorPos = _buffer.Count;
@@ -839,7 +851,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         if (match >= 0)
         {
             _searchMatchIndex = match;
-            _buffer = history.GetEntry(match).ToList();
+            SetBufferFromString(history[match]);
             _cursorPos = _buffer.Count;
         }
         RedrawLine();
@@ -863,7 +875,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         if (match >= 0)
         {
             _searchMatchIndex = match;
-            _buffer = history.GetEntry(match).ToList();
+            SetBufferFromString(history[match]);
             _cursorPos = _buffer.Count;
         }
         RedrawLine();
@@ -988,8 +1000,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         if (_dropdownIndex < 0 || _dropdownIndex >= _predictions.Count)
             return;
 
-        var selected = _predictions[_dropdownIndex];
-        _buffer = selected.ToList();
+        SetBufferFromString(_predictions[_dropdownIndex]);
         _cursorPos = _buffer.Count;
         DismissDropdown();
     }
