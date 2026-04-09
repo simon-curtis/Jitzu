@@ -690,6 +690,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             HighlightBuffer(sb, bufferView);
         }
 
+        Console.Write("\e[?2026h"); // Begin synchronized output
         Console.CursorVisible = false;
         Console.SetCursorPosition(0, _promptRow);
         Console.Write(sb.WrittenSpan);
@@ -763,6 +764,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
         Console.SetCursorPosition(cursorCol, cursorRow);
         Console.CursorVisible = true;
+        Console.Write("\e[?2026l"); // End synchronized output
     }
 
     private void RedrawSearchLine()
@@ -771,6 +773,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         var matched = new string(CollectionsMarshal.AsSpan(_buffer));
         var searchPrompt = Markup.FromString($"[dim](reverse-i-search)[\\]'{query}': {matched}");
 
+        Console.Write("\e[?2026h"); // Begin synchronized output
         Console.CursorVisible = false;
         Console.SetCursorPosition(0, _bufferRow);
         Console.Write(searchPrompt);
@@ -789,6 +792,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
         Console.SetCursorPosition(cursorCol, _bufferRow);
         Console.CursorVisible = true;
+        Console.Write("\e[?2026l"); // End synchronized output
     }
 
     private static (int Start, int End) GetRangeFromCursor(int first, int second) => first > second
