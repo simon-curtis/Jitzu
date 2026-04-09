@@ -79,17 +79,17 @@ public class HistoryManager
         return node?.Value ?? throw new ArgumentOutOfRangeException(nameof(index));
     }
 
-    public List<string> GetPredictions(string prefix, int maxCount, Func<string, bool>? filter = null)
+    public List<string> GetPredictions(ReadOnlySpan<char> prefix, int maxCount, Func<string, bool>? filter = null)
     {
-        if (string.IsNullOrEmpty(prefix)) return [];
+        if (prefix.IsEmpty) return [];
 
         var results = new List<string>(maxCount);
         var node = _history.Last;
 
         while (node is not null && results.Count < maxCount)
         {
-            if (node.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-                && !node.Value.Equals(prefix, StringComparison.OrdinalIgnoreCase)
+            if (node.Value.AsSpan().StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && !node.Value.AsSpan().Equals(prefix, StringComparison.OrdinalIgnoreCase)
                 && !IgnoredCommands.Contains(node.Value)
                 && (filter is null || filter(node.Value)))
                 results.Add(node.Value);

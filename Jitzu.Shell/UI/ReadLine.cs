@@ -57,6 +57,9 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         "pub", "open", "try", "defer", "clear", "union"
     ];
 
+    private static readonly HashSet<string>.AlternateLookup<ReadOnlySpan<char>> JitzuKeywordsLookup =
+        JitzuKeywords.GetAlternateLookup<ReadOnlySpan<char>>();
+
     private List<char> _buffer = [];
     private bool _cancelPressed;
     private string[]? _completions;
@@ -196,7 +199,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                     if (HandleSearchKey(key))
                     {
                         Console.WriteLine();
-                        return new string(_buffer.ToArray());
+                        return new string(CollectionsMarshal.AsSpan(_buffer));
                     }
                     continue;
                 }
@@ -223,7 +226,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                         DismissDropdown();
                         RedrawLine();
                         Console.WriteLine();
-                        return new string(_buffer.ToArray());
+                        return new string(CollectionsMarshal.AsSpan(_buffer));
 
                     case ConsoleKey.Backspace:
                         ClearCompletions();
@@ -236,10 +239,8 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                         {
                             if ((key.Modifiers & ConsoleModifiers.Control) != 0)
                             {
-                                var view = CollectionsMarshal.AsSpan(_buffer);
-                                var endOfPreviousWord = JumpToLastBoundary(view, _cursorPos);
-                                var output = $"{view[..endOfPreviousWord]}{view[_cursorPos..]}";
-                                _buffer = output.ToCharArray().ToList();
+                                var endOfPreviousWord = JumpToLastBoundary(CollectionsMarshal.AsSpan(_buffer), _cursorPos);
+                                _buffer.RemoveRange(endOfPreviousWord, _cursorPos - endOfPreviousWord);
                                 _cursorPos = endOfPreviousWord;
                             }
                             else
@@ -473,7 +474,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                             incomingBuffer.Add(Console.ReadKey(true).KeyChar);
 
                         // Split pasted text on newlines — execute first line, queue the rest
-                        var pasted = new string(incomingBuffer.ToArray());
+                        var pasted = new string(CollectionsMarshal.AsSpan(incomingBuffer));
                         var lines = pasted.Split(["\r\n", "\n", "\r"], StringSplitOptions.None);
 
                         if (lines.Length > 1)
@@ -496,7 +497,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                             // Auto-execute like other shells do
                             DismissDropdown();
                             Console.WriteLine();
-                            return new string(_buffer.ToArray());
+                            return new string(CollectionsMarshal.AsSpan(_buffer));
                         }
 
                         ClearCompletions();
@@ -718,7 +719,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         {
             Span<char> blankSpace = stackalloc char[remainder];
             blankSpace.Fill(' ');
-            Console.Write(blankSpace.ToString());
+            Console.Out.Write(blankSpace);
         }
 
         // Clear any stale rows left over from a previously taller buffer (e.g. after deleting a newline)
@@ -729,7 +730,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         {
             Console.SetCursorPosition(0, row);
             blank.Fill(' ');
-            Console.Write(blank.ToString());
+            Console.Out.Write(blank);
         }
 
         _previousVisualRows = totalVisualRows;
@@ -761,8 +762,8 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
     private void RedrawSearchLine()
     {
-        var query = new string(_searchBuffer.ToArray());
-        var matched = new string(_buffer.ToArray());
+        var query = new string(CollectionsMarshal.AsSpan(_searchBuffer));
+        var matched = new string(CollectionsMarshal.AsSpan(_buffer));
         var searchPrompt = Markup.FromString($"[dim](reverse-i-search)[\\]'{query}': {matched}");
 
         Console.CursorVisible = false;
@@ -773,7 +774,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         {
             Span<char> blankSpace = stackalloc char[remainder];
             blankSpace.Fill(' ');
-            Console.Write(blankSpace.ToString());
+            Console.Out.Write(blankSpace);
         }
 
         // Position cursor after the rendered text
@@ -824,7 +825,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         if (_searchMatchIndex <= 0)
             return;
 
-        var query = new string(_searchBuffer.ToArray());
+        var query = new string(CollectionsMarshal.AsSpan(_searchBuffer));
         var match = history.SearchBackward(query, _searchMatchIndex - 1);
         if (match >= 0)
         {
@@ -837,7 +838,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
 
     private void PerformSearch()
     {
-        var query = new string(_searchBuffer.ToArray());
+        var query = new string(CollectionsMarshal.AsSpan(_searchBuffer));
         if (string.IsNullOrEmpty(query))
         {
             if (_savedBuffer != null)
@@ -908,8 +909,7 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
         if (_dropdownIsCompletions)
             return;
 
-        var text = new string(_buffer.ToArray());
-        _predictions = history.GetPredictions(text, MaxPredictions, predictionFilter);
+        _predictions = history.GetPredictions(CollectionsMarshal.AsSpan(_buffer), MaxPredictions, predictionFilter);
         _dropdownIndex = -1;
 
         _ghostText = null;
@@ -936,12 +936,12 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             return;
         }
 
-        var currentText = new string(_buffer.ToArray());
+        var bufferLength = _buffer.Count;
         var selectedItem = _dropdownItems[_dropdownIndex];
 
         // Extract suffix (what comes after current input)
-        if (selectedItem.Length > currentText.Length)
-            _ghostText = selectedItem[currentText.Length..];
+        if (selectedItem.Length > bufferLength)
+            _ghostText = selectedItem[bufferLength..];
         else
             _ghostText = null;
     }
@@ -1334,12 +1334,11 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
                 pos++;
 
             var word = buffer[wordStart..pos];
-            var wordStr = word.ToString();
 
             string? color = null;
-            if (JitzuKeywords.Contains(wordStr))
+            if (JitzuKeywordsLookup.Contains(word))
                 color = theme["syntax.keyword"];
-            else if (wordStr is "true" or "false")
+            else if (word is "true" or "false")
                 color = theme["syntax.boolean"];
             else if (commandPos)
                 color = theme["syntax.command"];
