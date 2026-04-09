@@ -14,3 +14,4 @@
 | 8 | `GetGitBranch` double file read every prompt | Solved by #1 |
 | 9 | PATH enumeration on every tab press | `_pathDirectoryCache` — file names cached per PATH directory, invalidated by directory mtime |
 | 10 | Prompt builder allocates 3 StringBuilders + padding string every render | Single reusable `promptSb` cleared between uses; `cachedPadding` string reused when width unchanged |
+| 11 | `RedrawLine` allocates new `ArrayBufferWriter<char>` every keystroke | Promoted to field-level `_redrawBuf` with `ResetWrittenCount()` — internal array reused across calls |

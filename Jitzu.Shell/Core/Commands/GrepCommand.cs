@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -6,42 +7,61 @@ namespace Jitzu.Shell.Core.Commands;
 
 /// <summary>
 /// Searches for patterns in files.
-/// Supports streaming for large files to enable early termination.
+/// Uses parallel file processing and smart directory filtering for fast recursive search.
 /// </summary>
 public class GrepCommand(CommandContext context) : CommandBase(context), IStreamingCommand
 {
-    public override async Task<ShellResult> ExecuteAsync(ReadOnlyMemory<string> args)
+    /// <summary>
+    /// Directories skipped during recursive search (VCS internals, dependency caches, build outputs).
+    /// </summary>
+    private static readonly HashSet<string> SkippedDirs =
+    [
+        ".git", ".hg", ".svn",
+        "node_modules", "vendor",
+        "bin", "obj", ".vs", ".idea",
+        "__pycache__", ".cache", ".gradle",
+        "dist", "build", ".next", "target", "coverage"
+    ];
+
+    /// <summary>
+    /// If a pattern contains none of these, it is a literal string and regex can be skipped entirely.
+    /// </summary>
+    private static readonly SearchValues<char> RegexMetaChars =
+        SearchValues.Create(@"\.[]{}()*+?|^$");
+
+    public override Task<ShellResult> ExecuteAsync(ReadOnlyMemory<string> args)
     {
         if (args.Length == 0)
-            return new ShellResult(ResultType.Error, "", new Exception("Usage: grep [-i] [-n] [-r] [-c] <pattern> [file...]"));
+            return Task.FromResult(new ShellResult(ResultType.Error, "",
+                new Exception("Usage: grep [-i] [-n] [-r] [-c] <pattern> [file...]")));
 
         try
         {
             var (ignoreCase, showLineNumbers, recursive, countOnly, pattern, files) = ParseArgs(args);
 
             if (pattern == null)
-                return new ShellResult(ResultType.Error, "", new Exception("No pattern specified"));
+                return Task.FromResult(new ShellResult(ResultType.Error, "",
+                    new Exception("No pattern specified")));
 
-            // If no files, search current directory recursively
             if (files.Count == 0)
             {
                 if (!recursive)
-                    return new ShellResult(ResultType.Error, "",
-                        new Exception("No files specified (use -r for recursive search)"));
-
+                    return Task.FromResult(new ShellResult(ResultType.Error, "",
+                        new Exception("No files specified (use -r for recursive search)")));
                 files.Add(".");
             }
 
-            var matchRegex = BuildMatchRegex(pattern, ignoreCase);
-            var fallbackComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            var sb = new StringBuilder();
-            var matchColor = Theme["error"]; // red for matches, like real grep
+            var isLiteral = !pattern.AsSpan().ContainsAny(RegexMetaChars);
+            var matchRegex = isLiteral ? null : BuildMatchRegex(pattern, ignoreCase);
+            var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var matchColor = Theme["error"];
             var fileColor = Theme["ls.code"];
             const string lineNumColor = ThemeConfig.Dim;
             const string reset = ThemeConfig.Reset;
-            var multiFile = files.Count > 1 || recursive;
 
+            var sb = new StringBuilder();
             var filePaths = new List<string>();
+
             foreach (var file in files)
             {
                 var expanded = ExpandPath(file);
@@ -52,7 +72,8 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
                         sb.AppendLine($"{Theme["error"]}grep: {file}: Is a directory{reset}");
                         continue;
                     }
-                    filePaths.AddRange(Directory.GetFiles(expanded, "*", SearchOption.AllDirectories));
+
+                    EnumerateFilesRecursive(expanded, filePaths);
                 }
                 else if (File.Exists(expanded))
                 {
@@ -64,67 +85,39 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
                 }
             }
 
-            foreach (var filePath in filePaths)
+            var multiFile = filePaths.Count > 1;
+            var cwd = Environment.CurrentDirectory;
+
+            if (filePaths.Count <= 1)
             {
-                // Skip binary files
-                if (IsBinaryFile(filePath))
-                    continue;
-
-                var lines = await File.ReadAllLinesAsync(filePath);
-                var fileMatchCount = 0;
-                var relativePath = Path.GetRelativePath(Environment.CurrentDirectory, filePath);
-
-                for (var lineIdx = 0; lineIdx < lines.Length; lineIdx++)
+                foreach (var filePath in filePaths)
                 {
-                    var line = lines[lineIdx];
-
-                    MatchCollection? lineMatches;
-                    bool hasMatch;
-                    try
-                    {
-                        lineMatches = matchRegex?.Matches(line);
-                        hasMatch = matchRegex != null
-                            ? lineMatches!.Count > 0
-                            : line.Contains(pattern, fallbackComparison);
-                    }
-                    catch (RegexMatchTimeoutException)
-                    {
-                        continue; // Skip lines that cause catastrophic backtracking
-                    }
-
-                    if (!hasMatch) continue;
-
-                    fileMatchCount++;
-
-                    if (countOnly) continue;
-
-                    var lineBuilder = new StringBuilder();
-
-                    if (multiFile)
-                        lineBuilder.Append($"{fileColor}{relativePath}{reset}:");
-
-                    if (showLineNumbers)
-                        lineBuilder.Append($"{lineNumColor}{lineIdx + 1}{reset}:");
-
-                    AppendHighlightedLine(lineBuilder, line, pattern, lineMatches, fallbackComparison, matchColor, reset);
-
-                    sb.AppendLine(lineBuilder.ToString());
-                }
-
-                if (countOnly && fileMatchCount > 0)
-                {
-                    if (multiFile)
-                        sb.AppendLine($"{fileColor}{relativePath}{reset}:{fileMatchCount}");
-                    else
-                        sb.AppendLine(fileMatchCount.ToString());
+                    var result = SearchFile(filePath, cwd, matchRegex, pattern, comparison,
+                        showLineNumbers, multiFile, countOnly, matchColor, fileColor, lineNumColor, reset);
+                    if (result != null) sb.Append(result);
                 }
             }
+            else
+            {
+                var results = new string?[filePaths.Count];
+                Parallel.For(0, filePaths.Count,
+                    new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                    i =>
+                    {
+                        results[i] = SearchFile(filePaths[i], cwd, matchRegex, pattern, comparison,
+                            showLineNumbers, multiFile, countOnly, matchColor, fileColor, lineNumColor, reset);
+                    });
 
-            return new ShellResult(ResultType.OsCommand, sb.ToString().TrimEnd(), null);
+                foreach (var result in results)
+                    if (result != null)
+                        sb.Append(result);
+            }
+
+            return Task.FromResult(new ShellResult(ResultType.OsCommand, sb.ToString().TrimEnd(), null));
         }
         catch (Exception ex)
         {
-            return new ShellResult(ResultType.Error, "", ex);
+            return Task.FromResult(new ShellResult(ResultType.Error, "", ex));
         }
     }
 
@@ -148,15 +141,15 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
         else if (files.Count == 0)
             yield break;
 
-        var matchRegex = BuildMatchRegex(pattern, ignoreCase);
-        var fallbackComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var isLiteral = !pattern.AsSpan().ContainsAny(RegexMetaChars);
+        var matchRegex = isLiteral ? null : BuildMatchRegex(pattern, ignoreCase);
+        var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         var matchColor = Theme["error"];
         var fileColor = Theme["ls.code"];
-        var lineNumColor = ThemeConfig.Dim;
-        var reset = ThemeConfig.Reset;
+        const string lineNumColor = ThemeConfig.Dim;
+        const string reset = ThemeConfig.Reset;
         var multiFile = files.Count > 1 || recursive;
 
-        // Collect all file paths
         var filePaths = new List<string>();
         foreach (var file in files)
         {
@@ -164,7 +157,7 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
             if (Directory.Exists(expanded))
             {
                 if (recursive)
-                    filePaths.AddRange(Directory.GetFiles(expanded, "*", SearchOption.AllDirectories));
+                    EnumerateFilesRecursive(expanded, filePaths);
             }
             else if (File.Exists(expanded))
             {
@@ -172,61 +165,174 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
             }
         }
 
-        // Stream through files line-by-line
+        var lineBuilder = new StringBuilder();
+        var header = new byte[512];
+
         foreach (var filePath in filePaths)
         {
             if (cancellationToken.IsCancellationRequested)
                 yield break;
 
-            if (IsBinaryFile(filePath))
-                continue;
-
-            var relativePath = Path.GetRelativePath(Environment.CurrentDirectory, filePath);
-            var lineIdx = 0;
-
-            using var reader = new StreamReader(filePath);
-            while (!cancellationToken.IsCancellationRequested
-                   && await reader.ReadLineAsync(cancellationToken) is { } line)
+            FileStream fs;
+            try
             {
-                lineIdx++;
+                fs = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                    FileShare.Read, bufferSize: 1, FileOptions.SequentialScan);
+            }
+            catch { continue; }
 
-                MatchCollection? lineMatches;
-                bool hasMatch;
-                try
+            using (fs)
+            {
+                // Inline binary check
+                var headerRead = fs.Read(header);
+                var isBinary = false;
+                for (var i = 0; i < headerRead; i++)
                 {
-                    lineMatches = matchRegex?.Matches(line);
-                    hasMatch = matchRegex != null
-                        ? lineMatches!.Count > 0
-                        : line.Contains(pattern, fallbackComparison);
+                    if (header[i] != 0) continue;
+                    isBinary = true;
+                    break;
                 }
-                catch (RegexMatchTimeoutException)
+
+                if (isBinary) continue;
+                fs.Position = 0;
+
+                using var reader = new StreamReader(fs, Encoding.UTF8,
+                    detectEncodingFromByteOrderMarks: true, bufferSize: 65536);
+                var relativePath = Path.GetRelativePath(Environment.CurrentDirectory, filePath);
+                var lineNum = 0;
+
+                while (!cancellationToken.IsCancellationRequested
+                       && await reader.ReadLineAsync(cancellationToken) is { } line)
                 {
-                    continue; // Skip lines that cause catastrophic backtracking
+                    lineNum++;
+
+                    bool hasMatch;
+                    MatchCollection? lineMatches = null;
+
+                    if (matchRegex != null)
+                    {
+                        try
+                        {
+                            hasMatch = matchRegex.IsMatch(line);
+                            if (hasMatch) lineMatches = matchRegex.Matches(line);
+                        }
+                        catch (RegexMatchTimeoutException) { continue; }
+                    }
+                    else
+                    {
+                        hasMatch = line.Contains(pattern, comparison);
+                    }
+
+                    if (!hasMatch) continue;
+
+                    lineBuilder.Clear();
+                    if (multiFile) lineBuilder.Append(fileColor).Append(relativePath).Append(reset).Append(':');
+                    if (showLineNumbers) lineBuilder.Append(lineNumColor).Append(lineNum).Append(reset).Append(':');
+                    AppendHighlightedLine(lineBuilder, line, pattern, lineMatches, comparison, matchColor, reset);
+
+                    yield return lineBuilder.ToString();
                 }
-
-                if (!hasMatch)
-                    continue;
-
-                var lineBuilder = new StringBuilder();
-
-                if (multiFile)
-                    lineBuilder.Append($"{fileColor}{relativePath}{reset}:");
-
-                if (showLineNumbers)
-                    lineBuilder.Append($"{lineNumColor}{lineIdx}{reset}:");
-
-                AppendHighlightedLine(lineBuilder, line, pattern, lineMatches, fallbackComparison, matchColor, reset);
-
-                yield return lineBuilder.ToString();
             }
         }
     }
 
     /// <summary>
-    /// Parses grep arguments into flags, pattern, and file list.
-    /// Flags must appear before the pattern. Once a non-flag argument is encountered it becomes the pattern,
-    /// and all subsequent arguments are treated as file paths.
+    /// Searches a single file for matching lines. Returns formatted output or null if no matches / binary.
+    /// Opens the file once with SequentialScan and performs the binary check inline.
     /// </summary>
+    private static string? SearchFile(
+        string filePath, string cwd,
+        Regex? matchRegex, string pattern, StringComparison comparison,
+        bool showLineNumbers, bool multiFile, bool countOnly,
+        string matchColor, string fileColor, string lineNumColor, string reset)
+    {
+        try
+        {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                FileShare.Read, bufferSize: 1, FileOptions.SequentialScan);
+
+            // Inline binary check — avoids a separate file open
+            Span<byte> header = stackalloc byte[512];
+            var headerRead = fs.Read(header);
+            for (var i = 0; i < headerRead; i++)
+                if (header[i] == 0) return null;
+            fs.Position = 0;
+
+            using var reader = new StreamReader(fs, Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true, bufferSize: 65536);
+            var relativePath = Path.GetRelativePath(cwd, filePath);
+            StringBuilder? sb = null;
+            var lineNum = 0;
+            var matchCount = 0;
+
+            while (reader.ReadLine() is { } line)
+            {
+                lineNum++;
+
+                bool hasMatch;
+                MatchCollection? lineMatches = null;
+
+                if (matchRegex != null)
+                {
+                    try
+                    {
+                        hasMatch = matchRegex.IsMatch(line);
+                        if (hasMatch && !countOnly)
+                            lineMatches = matchRegex.Matches(line);
+                    }
+                    catch (RegexMatchTimeoutException) { continue; }
+                }
+                else
+                {
+                    hasMatch = line.Contains(pattern, comparison);
+                }
+
+                if (!hasMatch) continue;
+                matchCount++;
+                if (countOnly) continue;
+
+                sb ??= new StringBuilder();
+                if (multiFile) sb.Append(fileColor).Append(relativePath).Append(reset).Append(':');
+                if (showLineNumbers) sb.Append(lineNumColor).Append(lineNum).Append(reset).Append(':');
+                AppendHighlightedLine(sb, line, pattern, lineMatches, comparison, matchColor, reset);
+                sb.AppendLine();
+            }
+
+            if (countOnly && matchCount > 0)
+            {
+                sb ??= new StringBuilder();
+                if (multiFile) sb.Append(fileColor).Append(relativePath).Append(reset).Append(':');
+                sb.AppendLine(matchCount.ToString());
+            }
+
+            return sb?.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Recursively enumerates files, skipping VCS internals, dependency caches, and build output directories.
+    /// </summary>
+    private static void EnumerateFilesRecursive(string root, List<string> results)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(root))
+                results.Add(file);
+
+            foreach (var dir in Directory.EnumerateDirectories(root))
+            {
+                if (!SkippedDirs.Contains(Path.GetFileName(dir)))
+                    EnumerateFilesRecursive(dir, results);
+            }
+        }
+        catch (UnauthorizedAccessException) { }
+        catch (IOException) { }
+    }
+
     private static (bool IgnoreCase, bool ShowLineNumbers, bool Recursive, bool CountOnly, string? Pattern, List<string> Files) ParseArgs(
         ReadOnlyMemory<string> args)
     {
@@ -266,9 +372,6 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
         return (ignoreCase, showLineNumbers, recursive, countOnly, pattern, files);
     }
 
-    /// <summary>
-    /// Builds a compiled regex for the given pattern, or returns null if the pattern is not a valid regex.
-    /// </summary>
     private static Regex? BuildMatchRegex(string pattern, bool ignoreCase)
     {
         var options = ignoreCase
@@ -281,20 +384,19 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
         }
         catch (ArgumentException)
         {
-            return null; // Invalid regex — caller falls back to literal substring matching
+            return null;
         }
     }
 
     /// <summary>
-    /// Appends the line to the builder with all matches highlighted.
-    /// Uses pre-computed regex matches when available; otherwise falls back to literal substring search.
+    /// Appends the line with matches highlighted. Uses span-based appends to avoid substring allocations.
     /// </summary>
     private static void AppendHighlightedLine(
-        StringBuilder lineBuilder,
+        StringBuilder sb,
         string line,
         string pattern,
         MatchCollection? regexMatches,
-        StringComparison fallbackComparison,
+        StringComparison comparison,
         string matchColor,
         string reset)
     {
@@ -303,28 +405,32 @@ public class GrepCommand(CommandContext context) : CommandBase(context), IStream
             var lastIndex = 0;
             foreach (Match match in regexMatches)
             {
-                lineBuilder.Append(line[lastIndex..match.Index]);
-                lineBuilder.Append($"{matchColor}{ThemeConfig.Bold}{match.Value}{reset}");
+                sb.Append(line.AsSpan(lastIndex, match.Index - lastIndex));
+                sb.Append(matchColor).Append(ThemeConfig.Bold);
+                sb.Append(line.AsSpan(match.Index, match.Length));
+                sb.Append(reset);
                 lastIndex = match.Index + match.Length;
             }
-            lineBuilder.Append(line[lastIndex..]);
+
+            sb.Append(line.AsSpan(lastIndex));
         }
         else
         {
-            // Literal fallback highlighting
-            var remaining = line;
-            while (true)
+            var pos = 0;
+            while (pos < line.Length)
             {
-                var idx = remaining.IndexOf(pattern, fallbackComparison);
+                var idx = line.IndexOf(pattern, pos, comparison);
                 if (idx < 0)
                 {
-                    lineBuilder.Append(remaining);
+                    sb.Append(line.AsSpan(pos));
                     break;
                 }
 
-                lineBuilder.Append(remaining[..idx]);
-                lineBuilder.Append($"{matchColor}{ThemeConfig.Bold}{remaining[idx..(idx + pattern.Length)]}{reset}");
-                remaining = remaining[(idx + pattern.Length)..];
+                sb.Append(line.AsSpan(pos, idx - pos));
+                sb.Append(matchColor).Append(ThemeConfig.Bold);
+                sb.Append(line.AsSpan(idx, pattern.Length));
+                sb.Append(reset);
+                pos = idx + pattern.Length;
             }
         }
     }

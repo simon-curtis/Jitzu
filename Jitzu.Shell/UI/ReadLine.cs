@@ -100,6 +100,9 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
     // Reused StringBuilder for syntax highlighting (avoids allocation per keystroke)
     private readonly StringBuilder _highlightSb = new();
 
+    // Reused buffer writer for RedrawLine (avoids allocation per keystroke)
+    private readonly ArrayBufferWriter<char> _redrawBuf = new();
+
     // Queued lines from multi-line paste
     private readonly Queue<string> _pastedLines = new();
 
@@ -686,7 +689,8 @@ public class ReadLine(HistoryManager history, ThemeConfig theme, CompletionHandl
             return;
         }
 
-        var sb = new ArrayBufferWriter<char>(_prompt.Length + _buffer.Count);
+        _redrawBuf.ResetWrittenCount();
+        var sb = _redrawBuf;
         // write position if in debug
 #if DEBUG
         sb.Write($"BH: {Console.BufferHeight} CT: {Console.CursorTop} PR: {_promptRow} ");
