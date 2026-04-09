@@ -27,6 +27,13 @@ public class CompletionManager(ShellSession session, BuiltinCommands builtinComm
         : [".exe", ""];
     private readonly bool _isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
+    private static readonly StringComparer FileNameComparer =
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
+    private Dictionary<string, (DateTime LastWrite, HashSet<string> FileNames)>? _pathDirectoryCache;
+
     public string[] GetCompletions(string input)
     {
         var lastWord = ExtractLastWord(input);
@@ -183,6 +190,8 @@ public class CompletionManager(ShellSession session, BuiltinCommands builtinComm
 
         try
         {
+            _pathDirectoryCache ??= new(FileNameComparer);
+
             HashSet<string>? seen = null;
             List<ExecutableCompletion>? results = null;
 
@@ -192,19 +201,17 @@ public class CompletionManager(ShellSession session, BuiltinCommands builtinComm
 
                 foreach (var dir in _pathDirectories)
                 {
-                    if (!Directory.Exists(dir))
+                    var fileNames = GetCachedFileNames(dir);
+                    if (fileNames is null || !fileNames.Contains(searchTerm))
                         continue;
 
-                    foreach (var file in Directory.GetFiles(dir, searchTerm))
-                    {
-                        var name = StripExtension(Path.GetFileName(file));
-                        seen ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var name = StripExtension(searchTerm);
+                    seen ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                        if (seen.Add(name))
-                        {
-                            results ??= [];
-                            results.Add(new ExecutableCompletion(name));
-                        }
+                    if (seen.Add(name))
+                    {
+                        results ??= [];
+                        results.Add(new ExecutableCompletion(name));
                     }
                 }
             }
@@ -214,6 +221,32 @@ public class CompletionManager(ShellSession session, BuiltinCommands builtinComm
         catch
         {
             return [];
+        }
+    }
+
+    private HashSet<string>? GetCachedFileNames(string directory)
+    {
+        if (!Directory.Exists(directory))
+            return null;
+
+        try
+        {
+            var lastWrite = Directory.GetLastWriteTimeUtc(directory);
+
+            if (_pathDirectoryCache!.TryGetValue(directory, out var entry) && entry.LastWrite == lastWrite)
+                return entry.FileNames;
+
+            var files = Directory.GetFiles(directory);
+            var names = new HashSet<string>(files.Length, FileNameComparer);
+            foreach (var file in files)
+                names.Add(Path.GetFileName(file));
+
+            _pathDirectoryCache[directory] = (lastWrite, names);
+            return names;
+        }
+        catch
+        {
+            return null;
         }
     }
 
