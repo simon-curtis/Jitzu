@@ -1,3 +1,4 @@
+using System.IO.Enumeration;
 using System.Text;
 
 namespace Jitzu.Shell.Core.Commands;
@@ -65,12 +66,8 @@ public class FindCommand : CommandBase
                 if (typeFilter == 'd' && !isDir) continue;
 
                 // Name pattern (supports * and ?)
-                if (namePattern != null)
-                {
-                    var pattern = namePattern.Replace("*", ".*").Replace("?", ".");
-                    if (!System.Text.RegularExpressions.Regex.IsMatch(name, $"^{pattern}$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                        continue;
-                }
+                if (namePattern != null && !MatchGlob(name, namePattern))
+                    continue;
 
                 // Extension filter
                 if (extension != null && !name.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
@@ -100,4 +97,11 @@ public class FindCommand : CommandBase
             return Task.FromResult(new ShellResult(ResultType.Error, "", ex));
         }
     }
+
+    /// <summary>
+    /// Matches a filename against a glob pattern (supports * and ?).
+    /// Uses the built-in FileSystemName.MatchesSimpleExpression for correct glob semantics.
+    /// </summary>
+    private static bool MatchGlob(string name, string pattern) =>
+        FileSystemName.MatchesSimpleExpression(pattern, name, ignoreCase: true);
 }

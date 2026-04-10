@@ -71,6 +71,11 @@ public sealed class ThemeConfig
     private ThemeConfig(FrozenDictionary<string, string> colors) => _colors = colors;
 
     /// <summary>
+    /// Creates a ThemeConfig with default ANSI colors. For tests that need a theme without filesystem access.
+    /// </summary>
+    internal static ThemeConfig CreateDefault() => new(BuildAnsiDefaults().ToFrozenDictionary());
+
+    /// <summary>
     /// Gets the ANSI escape code for a semantic color key.
     /// Returns empty string if the key is unknown.
     /// </summary>
