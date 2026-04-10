@@ -282,3 +282,81 @@ jobs:
         env:
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
         run: .github/scripts/publish-aur.sh "${{ steps.version.outputs.version }}" "${{ steps.hash.outputs.sha256 }}"
+
+  update-winget:
+    needs: release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolve version
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download win-x64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jitzu-win-x64
+          path: artifacts
+
+      - name: Compute SHA256
+        id: hash
+        run: |
+          HASH=$(sha256sum artifacts/jitzu-${{ steps.version.outputs.version }}-win-x64.zip | cut -d' ' -f1)
+          echo "sha256=$HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Update local WinGet manifests
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          HASH=${{ steps.hash.outputs.sha256 }}
+          URL="https://github.com/jitzulang/jitzu/releases/download/v${VERSION}/jitzu-${VERSION}-win-x64.zip"
+
+          cat > packaging/winget/SimonCurtis.Jz.yaml <<EOF
+          PackageIdentifier: SimonCurtis.Jz
+          PackageVersion: ${VERSION}
+          DefaultLocale: en-US
+          ManifestType: version
+          ManifestVersion: 1.9.0
+          EOF
+          sed -i 's/^          //' packaging/winget/SimonCurtis.Jz.yaml
+
+          cat > packaging/winget/SimonCurtis.Jz.installer.yaml <<EOF
+          PackageIdentifier: SimonCurtis.Jz
+          PackageVersion: ${VERSION}
+          InstallerType: zip
+          NestedInstallerType: portable
+          NestedInstallerFiles:
+            - RelativeFilePath: jz.exe
+              PortableCommandAlias: jz
+          Installers:
+            - Architecture: x64
+              InstallerUrl: ${URL}
+              InstallerSha256: ${HASH}
+          ManifestType: installer
+          ManifestVersion: 1.9.0
+          EOF
+          sed -i 's/^          //' packaging/winget/SimonCurtis.Jz.installer.yaml
+
+          sed -i "s/^PackageVersion: .*/PackageVersion: ${VERSION}/" packaging/winget/SimonCurtis.Jz.locale.en-US.yaml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packaging/winget/
+          git commit -m "Update WinGet manifests to v${VERSION}" || exit 0
+          git push
+
+      - name: Submit to WinGet repository
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: SimonCurtis.Jz
+          version: ${{ steps.version.outputs.version }}
+          installers-regex: '-win-x64\.zip$'
+          token: ${{ secrets.WINGET_TOKEN }}

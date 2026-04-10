@@ -1,5 +1,5 @@
 PackageIdentifier: SimonCurtis.Jz
-PackageVersion: 0.2.0
+PackageVersion: 0.1.21
 InstallerType: zip
 NestedInstallerType: portable
 NestedInstallerFiles:
@@ -7,7 +7,7 @@ NestedInstallerFiles:
     PortableCommandAlias: jz
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/jitzulang/jitzu/releases/download/v0.2.0/jitzu-0.2.0-win-x64.zip
-    InstallerSha256: PLACEHOLDER_SHA256
+    InstallerUrl: https://github.com/jitzulang/jitzu/releases/download/v0.1.21/jitzu-0.1.21-win-x64.zip
+    InstallerSha256: 8f42cefeca680996ec515410036c738fbbad97a226dae8a320d5fb80ffa75b04
 ManifestType: installer
-ManifestVersion: 1.6.0
+ManifestVersion: 1.9.0
