@@ -9,6 +9,7 @@ license=('MIT')
 provides=('jz')
 conflicts=('jz')
 depends=('glibc')
+options=('!strip')
 source=("https://github.com/jitzulang/jitzu/releases/download/v${pkgver}/jitzu-${pkgver}-linux-x64.zip")
 sha256sums=('d5d37b66cd257aeeeb37f1498b3d0ac8eac22b5ae28b3f6ba32abe6da763ab7b')
 

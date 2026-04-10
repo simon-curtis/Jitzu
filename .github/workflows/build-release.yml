@@ -259,6 +259,7 @@ jobs:
           provides=('jz')
           conflicts=('jz')
           depends=('glibc')
+          options=('!strip')
           source=("https://github.com/jitzulang/jitzu/releases/download/v${pkgver}/jitzu-${pkgver}-linux-x64.zip")
           sha256sums=('HASH_PLACEHOLDER')
 
