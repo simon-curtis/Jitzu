@@ -9,6 +9,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <AssemblyName>jz</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>..\Resources\logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
