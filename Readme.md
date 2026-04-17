@@ -1,9 +1,3 @@
-<p align="center">
-  <a href="https://jitzu.dev">
-    <img src="https://jitzu.dev/ninja-500.png?" alt="Logo" height=170>
-  </a>
-</p>
-
 <h1 align="center">Jitzu</h1>
 
 <div align="center">
