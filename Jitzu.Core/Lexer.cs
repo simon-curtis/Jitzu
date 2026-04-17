@@ -424,6 +424,36 @@ public ref struct Lexer(ReadOnlySpan<char> filePath, ReadOnlySpan<char> input, i
                     return tokens;
                 }
 
+                case '$' when Peek(1) is '{':
+                {
+                    var start = _currentLocation;
+                    var dollarIndex = _index;
+
+                    // Scan the inner expression to echo it back in the error (best-effort).
+                    var scan = _index + 2;
+                    var depth = 0;
+                    while (scan <= _maxIndex)
+                    {
+                        var ch = _input[scan];
+                        if (ch == '{') depth++;
+                        else if (ch == '}')
+                        {
+                            if (depth == 0) break;
+                            depth--;
+                        }
+                        scan++;
+                    }
+                    var inner = scan <= _maxIndex
+                        ? _input[(_index + 2)..scan].ToString()
+                        : "expr";
+
+                    _currentLocation.AdvanceBy(1);
+                    _index++;
+                    throw new JitzuException(
+                        new SourceSpan(_filePath, _index - dollarIndex, start, _currentLocation),
+                        $"Did you mean `{{{inner}}}` instead of `${{{inner}}}`? Jitzu uses `{{expr}}` for string interpolation; drop the `$`.");
+                }
+
                 case '{':
                 {
                     // gather the text up to to now
