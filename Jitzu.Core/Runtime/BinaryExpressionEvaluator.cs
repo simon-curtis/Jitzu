@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Jitzu.Core.Logging;
 
@@ -14,7 +15,7 @@ public static class BinaryExpressionEvaluator
         (ValueKind.Double, ValueKind.Double) => Value.FromBool(Math.Abs(a.F64 - b.F64) < 0),
         _ => Throw("lt", a, b)
     };
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Add(Value a, Value b) => (a.Kind, b.Kind) switch
     {
@@ -22,8 +23,46 @@ public static class BinaryExpressionEvaluator
         (ValueKind.Int, ValueKind.Double) => Value.FromDouble(a.I32 + b.F64),
         (ValueKind.Double, ValueKind.Int) => Value.FromDouble(a.F64 + b.I32),
         (ValueKind.Double, ValueKind.Double) => Value.FromDouble(a.F64 + b.F64),
+        (ValueKind.Ref, _) or (_, ValueKind.Ref) => ConcatIfString(a, b),
         _ => Throw("add", a, b)
     };
+
+    // String concatenation for `+`. Auto-stringifies primitives on the other
+    // side (int/double/bool) so `"x = " + 42` works. Non-string Ref values
+    // still throw — we don't want silent ToString() on arbitrary objects.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Value ConcatIfString(Value a, Value b)
+    {
+        if (a.Kind == ValueKind.Ref && a.Ref is string sa && TryStringify(b, out var tb))
+            return Value.FromRef(string.Concat(sa, tb));
+
+        if (b.Kind == ValueKind.Ref && b.Ref is string sb && TryStringify(a, out var ta))
+            return Value.FromRef(string.Concat(ta, sb));
+
+        return Throw("add", a, b);
+    }
+
+    private static bool TryStringify(Value v, out string result)
+    {
+        switch (v.Kind)
+        {
+            case ValueKind.Int:
+                result = v.I32.ToString(CultureInfo.InvariantCulture);
+                return true;
+            case ValueKind.Double:
+                result = v.F64.ToString(CultureInfo.InvariantCulture);
+                return true;
+            case ValueKind.Bool:
+                result = v.B.ToString();
+                return true;
+            case ValueKind.Ref when v.Ref is string s:
+                result = s;
+                return true;
+            default:
+                result = string.Empty;
+                return false;
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Sub(Value a, Value b) => (a.Kind, b.Kind) switch
