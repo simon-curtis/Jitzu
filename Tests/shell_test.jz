@@ -1,12 +1,12 @@
 // Test script for Jitzu.Shell
 let x = 42
-print("x = " + x)
+print(`x = {x}`)
 
 let y = x + 1
-print("y = x + 1 = " + y)
+print(`y = x + 1 = {y}`)
 
-fun double(n) {
+fun double(n: Int): Int {
     n * 2
 }
 
-print("double(x) = " + double(x))
+print(`double(x) = {double(x)}`)
