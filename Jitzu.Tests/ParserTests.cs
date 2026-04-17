@@ -864,9 +864,42 @@ public class ParserTests
     }
 
     [Test]
-    public void Generics()
+    public void Generics_ReturnTypeWithTwoArgs_ParsesAsGenericName()
     {
-        // TODO: Do this lazy bones
+        var text = "fun fetch(id: Int): Result<JObject, String> { id }";
+        var expressions = ParseSourceText(text);
+
+        expressions.Length.ShouldBe(1);
+        var funcDef = expressions[0].ShouldBeOfType<FunctionDefinitionExpression>();
+
+        var returnType = funcDef.ReturnType.ShouldNotBeNull().ShouldBeOfType<GenericNameLiteral>();
+        returnType.Name.ShouldBe("Result");
+        returnType.TypeArgumentList.Length.ShouldBe(2);
+        returnType.TypeArgumentList[0].ShouldBeOfType<IdentifierLiteral>().Name.ShouldBe("JObject");
+        returnType.TypeArgumentList[1].ShouldBeOfType<IdentifierLiteral>().Name.ShouldBe("String");
+    }
+
+    [Test]
+    public void Generics_ParameterTypeWithOneArg_ParsesAsGenericName()
+    {
+        var text = "fun unwrap(x: Option<Int>): Int { 0 }";
+        var expressions = ParseSourceText(text);
+
+        var funcDef = expressions[0].ShouldBeOfType<FunctionDefinitionExpression>();
+        var paramType = funcDef.Parameters.Parameters[0].Type.ShouldBeOfType<GenericNameLiteral>();
+        paramType.Name.ShouldBe("Option");
+        paramType.TypeArgumentList.Length.ShouldBe(1);
+        paramType.TypeArgumentList[0].ShouldBeOfType<IdentifierLiteral>().Name.ShouldBe("Int");
+    }
+
+    [Test]
+    public void Generics_PlainIdentifier_StillParsesAsIdentifier()
+    {
+        var text = "fun id(x: Int): Int { x }";
+        var expressions = ParseSourceText(text);
+
+        var funcDef = expressions[0].ShouldBeOfType<FunctionDefinitionExpression>();
+        funcDef.ReturnType.ShouldNotBeNull().ShouldBeOfType<IdentifierLiteral>().Name.ShouldBe("Int");
     }
 
     private static Expression[] ParseSourceText(ReadOnlySpan<char> source)

@@ -679,7 +679,7 @@ public ref struct Parser(ReadOnlySpan<Token> tokens)
         // Handle qualified names (e.g., System.Collections.List)
         while (_current is { Type: TokenType.Operator, Value: "." })
         {
-            var dot = ExpectAndConsume('.');
+            ExpectAndConsume('.');
             var property = ParseIdentifierLiteral();
 
             expr = new SimpleMemberAccessExpression
@@ -687,6 +687,29 @@ public ref struct Parser(ReadOnlySpan<Token> tokens)
                 Object = expr,
                 Property = property,
                 Location = expr.Location.Extend(property.Location)
+            };
+        }
+
+        // Handle generic type arguments (e.g., Result<JObject, String>)
+        if (_current is { Type: TokenType.Operator, Value: "<" } && expr is IdentifierLiteral baseIdent)
+        {
+            var lessThan = ExpectAndConsume('<');
+
+            var typeArgs = ImmutableArray.CreateBuilder<Expression>();
+            typeArgs.Add(ParseTypeAnnotation());
+            while (TryConsume(','))
+                typeArgs.Add(ParseTypeAnnotation());
+
+            var greaterThan = ExpectAndConsume('>');
+
+            expr = new GenericNameLiteral
+            {
+                Identifier = baseIdent.Token,
+                LessThanBracket = lessThan,
+                TypeArgumentList = [.. typeArgs],
+                GreaterThanBracket = greaterThan,
+                Name = baseIdent.Name,
+                Location = baseIdent.Location.Extend(greaterThan.Span)
             };
         }
 

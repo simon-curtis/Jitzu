@@ -575,6 +575,7 @@ public class SemanticAnalyser(RuntimeProgram program)
             SimpleMemberAccessExpression sma when IsQualifiedTypeName(sma) => ResolveQualifiedTypeName(sma),
             // Simple name resolution with namespace support
             IdentifierLiteral i => ResolveSimpleName(i.Name),
+            GenericNameLiteral g => ResolveGenericTypeName(g),
             GlobalSetExpression { SetterType: { } setterType } => setterType,
             GlobalGetExpression { VariableType: { } varType } => varType,
             GlobalGetExpression g when program.SimpleTypeCache.TryGetValue(g.Name, out var type) => type,
@@ -588,6 +589,28 @@ public class SemanticAnalyser(RuntimeProgram program)
             SimpleMemberAccessExpression s => ResolveTypeMember(s),
             _ => typeof(void)
         };
+    }
+
+    private Type ResolveGenericTypeName(GenericNameLiteral g)
+    {
+        var baseType = ResolveSimpleName(g.Name);
+        if (baseType == typeof(void))
+            throw new JitzuException(g.Location, $"Unknown type '{g.Name}'");
+
+        if (!baseType.IsGenericTypeDefinition)
+            throw new JitzuException(g.Location, $"Type '{g.Name}' is not generic");
+
+        var expectedArity = baseType.GetGenericArguments().Length;
+        if (g.TypeArgumentList.Length != expectedArity)
+            throw new JitzuException(
+                g.Location,
+                $"Type '{g.Name}' expects {expectedArity} type argument(s), got {g.TypeArgumentList.Length}");
+
+        var typeArgs = new Type[g.TypeArgumentList.Length];
+        for (var i = 0; i < g.TypeArgumentList.Length; i++)
+            typeArgs[i] = ResolveType(g.TypeArgumentList[i]);
+
+        return baseType.MakeGenericType(typeArgs);
     }
 
     private Type ResolveSimpleName(string name)
