@@ -4,7 +4,7 @@ namespace Jitzu.Shell.Models;
 
 [Command(
     About = "Jitzu - A fast and flexible script execution engine",
-    LongAbout = "Jitzu is a modern scripting language literally designed to be full to the brim with syntax sugar, making it fun(?) to write scripts and stuff."
+    LongAbout = "Jitzu is a modern scripting language literally designed to be full to the brim with syntax sugar, making it fun(?) to write scripts and stuff.\n\nLearn more at https://jitzu.dev/docs"
 )]
 public partial class JitzuOptions
 {
