@@ -45,6 +45,8 @@ const imageUrl = new URL(image, Astro.site).href;
 
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+    <link rel="alternate" type="text/plain" title="LLM docs index (llmstxt.org)" href="/llms.txt" />
+    <link rel="alternate" type="text/plain" title="LLM docs (full, concatenated)" href="/llms-full.txt" />
 
     {structuredData && (
       <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />

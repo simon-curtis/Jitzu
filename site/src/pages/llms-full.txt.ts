@@ -25,7 +25,8 @@ export const GET: APIRoute = async () => {
 
   const parts: string[] = [];
   parts.push('# Jitzu — Full Documentation\n');
-  parts.push('> An interactive shell and a typed scripting language built on .NET.\n');
+  parts.push('> A typed shell and scripting language on .NET. Pipe OS command output into typed functions; call any NuGet package directly.\n');
+  parts.push('Status: alpha — small stdlib, not production-ready. Open source.\n');
   parts.push(`Source: ${SITE} — all documentation pages concatenated in canonical order.\n`);
 
   for (const section of orderedSections) {

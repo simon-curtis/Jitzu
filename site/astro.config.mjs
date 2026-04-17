@@ -7,6 +7,9 @@ export default defineConfig({
   site: 'https://jitzu.dev',
   output: 'static',
   trailingSlash: 'never',
+  redirects: {
+    '/docs': '/docs/getting-started/overview',
+  },
   integrations: [
     mdx(),
     sitemap(),
