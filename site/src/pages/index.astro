@@ -60,6 +60,18 @@ const comparisons = [
   { them: "everything is a string", us: "Int, String, Bool, Result<T, E>, Option<T>", lang: "Bash" },
 ];
 
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Jitzu',
+  description: 'An interactive shell and a typed scripting language built on .NET.',
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Windows, macOS, Linux',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  url: 'https://jitzu.dev',
+  sameAs: ['https://github.com/jitzulang/jitzu'],
+};
+
 const features = [
   {
     title: "Pattern matching",
@@ -114,7 +126,7 @@ print(json)`,
 ];
 ---
 
-<BaseLayout>
+<BaseLayout structuredData={structuredData}>
   <div class="flex flex-col min-h-screen bg-background">
     <Header />
 

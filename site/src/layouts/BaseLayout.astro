@@ -4,10 +4,22 @@ import '@/styles/globals.css';
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const { title = 'Jitzu', description = 'An interactive shell and a typed scripting language.' } = Astro.props;
+const {
+  title = 'Jitzu',
+  description = 'An interactive shell and a typed scripting language.',
+  image = '/og-default.svg',
+  type = 'website',
+  structuredData,
+} = Astro.props;
+
 const fullTitle = title === 'Jitzu' ? title : `${title} | Jitzu`;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const imageUrl = new URL(image, Astro.site).href;
 ---
 
 <!doctype html>
@@ -15,14 +27,29 @@ const fullTitle = title === 'Jitzu' ? title : `${title} | Jitzu`;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0f" />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:site_name" content="Jitzu" />
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:image" content={imageUrl} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
+
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+
+    {structuredData && (
+      <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    )}
+
     <title>{fullTitle}</title>
   </head>
   <body class="antialiased" style="font-family:Inter,system-ui,sans-serif">

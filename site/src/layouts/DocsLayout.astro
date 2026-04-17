@@ -17,9 +17,32 @@ const breadcrumbs = segments.map((seg, i) => ({
   href: '/' + segments.slice(0, i + 1).join('/'),
   isLast: i === segments.length - 1,
 }));
+
+const siteUrl = Astro.site?.href.replace(/\/$/, '') ?? '';
+const structuredData = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: title ?? 'Jitzu',
+    description: description ?? '',
+    url: new URL(Astro.url.pathname, Astro.site).href,
+    author: { '@type': 'Organization', name: 'Jitzu' },
+    publisher: { '@type': 'Organization', name: 'Jitzu' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbs.map((c, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: c.label,
+      item: `${siteUrl}${c.href}`,
+    })),
+  },
+];
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} type="article" structuredData={structuredData}>
   {/* Mobile sidebar toggle checkbox must be before sidebar */}
   <input type="checkbox" id="sidebar-toggle" class="hidden" />
 

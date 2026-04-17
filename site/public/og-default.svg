@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1a1a2a" />
+      <stop offset="100%" stop-color="#0a0a0f" />
+    </radialGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#87afd7" />
+      <stop offset="50%" stop-color="#d7afaf" />
+      <stop offset="100%" stop-color="#afd7af" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <text x="600" y="300" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="220" letter-spacing="-12" fill="url(#accent)">Jitzu</text>
+  <text x="600" y="400" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="300" font-size="32" fill="#b4b4bd">An interactive shell and a typed scripting language.</text>
+  <text x="600" y="540" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="20" fill="#87afd7" opacity="0.7">jitzu.dev</text>
+</svg>
