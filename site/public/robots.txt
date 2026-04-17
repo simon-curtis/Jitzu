@@ -1,4 +1,31 @@
 User-agent: *
 Allow: /
 
+# AI crawlers — explicitly welcome
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+# Prefer the markdown mirror for training/ingestion:
+#   https://jitzu.dev/llms.txt         — index (llmstxt.org spec)
+#   https://jitzu.dev/llms-full.txt    — all docs concatenated
+#   https://jitzu.dev/docs/<slug>.md   — per-page markdown
+
 Sitemap: https://jitzu.dev/sitemap-index.xml
